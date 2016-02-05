@@ -1,4 +1,65 @@
-hash: 3441bf6ff6d443d7e65fcdfc4f1d1b67e506cee012ed3b4901bbe2aab9890aa9
-updated: 2016-02-05T18:51:10.298513886Z
-imports: []
+hash: 751b832740f98758d999920b5bc5be0d6261e2061e96759239d653ab91eff7a7
+updated: 2016-02-05T20:50:31.16048829Z
+imports:
+- name: github.com/cyberdelia/go-metrics-graphite
+  version: 7e54b5c2aa6eaff4286c44129c3def899dff528c
+- name: github.com/golang/protobuf
+  version: b982704f8bb716bb608144408cff30e15fbde841
+  subpackages:
+  - proto
+- name: github.com/gorilla/context
+  version: 1c83b3eabd45b6d76072b66b746c20815fb2872d
+- name: github.com/gorilla/handlers
+  version: b3aff83722cb2ae031a70cae984650e3a16cd20e
+- name: github.com/gorilla/mux
+  version: 26a6070f849969ba72b72256e9f14cf519751690
+- name: github.com/hashicorp/consul
+  version: 0cb4318b2e85d46d92ddb7c9fdc6b7a91a1f3d4d
+  subpackages:
+  - api
+- name: github.com/hashicorp/go-cleanhttp
+  version: ce617e79981a8fff618bb643d155133a8f38db96
+- name: github.com/hashicorp/serf
+  version: c4c55f16bae1aed9b355ad655d3ebf0215734461
+  subpackages:
+  - coordinate
+- name: github.com/kelseyhightower/envconfig
+  version: 12c18e8343f6eb5fc3a9d5c8dc353e42e6bb40b9
+- name: github.com/nu7hatch/gouuid
+  version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3
+- name: github.com/NYTimes/gizmo
+  version: 2a003aac271a7559d9cbb598d965766d32aa3c22
+  subpackages:
+  - config
+  - server
+  - web
+- name: github.com/NYTimes/logrotate
+  version: a5276429b5aadf067486dcb082e41a600c757d2c
+- name: github.com/rcrowley/go-metrics
+  version: 51425a2415d21afadfd55cd93432c0bc69e9598d
+- name: github.com/Sirupsen/logrus
+  version: be52937128b38f1d99787bb476c789e2af1147f1
+- name: golang.org/x/net
+  version: 7f88271ea9913b72aca44fa7fc8af919eacc17ce
+  subpackages:
+  - context
+  - trace
+  - internal/timeseries
+  - http2
+  - http2/hpack
+- name: google.golang.org/grpc
+  version: 933601d8cd6418a8a891bd9075a7161b0a67badb
+  subpackages:
+  - metadata
+  - codes
+  - credentials
+  - grpclog
+  - naming
+  - transport
+  - peer
+- name: gopkg.in/mgo.v2
+  version: 3871eddd896b8b70fe630053af5e81f2c1e8ed53
+  subpackages:
+  - bson
+  - internal/scram
 devImports: []

@@ -25,6 +25,13 @@ The most confortable way to run the dev environment is doing:
 This command will build the environment and run the shell where you can exectute
 any command
 
+### Settings on dev
+
+To run with specific settings you can use the `KHRONOS_CONFIG_FILE` env var,
+for example:
+
+    $ KHRONOS_CONFIG_FILE="`pwd`/environment/dev/settings.json" go run ./main.go
+
 ### Others
 
 There are other comands like `make test` to run the tests, `make app_build` to

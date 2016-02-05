@@ -1,2 +1,6 @@
 package: .
-import: []
+import:
+- package: github.com/NYTimes/gizmo
+  subpackages:
+  - config
+  - server
