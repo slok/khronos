@@ -1,0 +1,6 @@
+app:
+  container_name: khronos-dev
+  ports:
+    - "4444:4444"
+
+  hostname: khronos-dev

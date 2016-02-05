@@ -1,0 +1,10 @@
+app:
+  build: ../
+  dockerfile: Dockerfile
+  ports:
+    - "8888:8888"
+
+  volumes:
+    - ./../:/go/src/github.com/slok/khronos
+
+  command: "/bin/true"
