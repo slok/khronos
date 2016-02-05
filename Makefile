@@ -64,4 +64,7 @@ shell: docker_build
 # Loads a shell with binded ports
 up: docker_build
 	cd environment/dev && \
-		${DOCKER_COMPOSE_CMD_DEV} run --rm --service-ports app /bin/bash -ci "./environment/dev/build.sh;/bin/bash"; 
+		${DOCKER_COMPOSE_CMD_DEV} run --rm --service-ports app /bin/bash -ci "./environment/dev/build.sh;/bin/bash";
+
+authors:
+	-git log --format='%aN <%aE>' | LC_ALL=C.UTF-8 sort -uf > ./AUTHORS
