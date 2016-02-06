@@ -1,0 +1,18 @@
+language: go
+
+go:
+  - 1.5
+
+env:
+  - GOARCH=amd64
+
+install:
+  - make ci_bootstrap
+
+script:
+  - GO15VENDOREXPERIMENT=1 make ci_test
+
+notifications:
+  email:
+    on_success: change
+    on_failure: always

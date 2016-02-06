@@ -70,3 +70,9 @@ up: docker_build
 
 authors:
 	-git log --format='%aN <%aE>' | LC_ALL=C.UTF-8 sort -uf > ./AUTHORS
+
+ci_test:
+	KHRONOS_CONFIG_FILE="`pwd`/environment/ci/settings.json" go test ./service -v
+
+ci_bootstrap:
+	glide install

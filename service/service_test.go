@@ -29,7 +29,6 @@ func TestPingGETEndpoint(t *testing.T) {
 
 		// Create a testing server
 		testServer := server.NewSimpleServer(nil)
-		defer testServer.Close()
 
 		// Register our service on the server (we don't need configuration for this service)
 		testServer.Register(&Service{})
