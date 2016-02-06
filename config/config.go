@@ -1,20 +1,19 @@
 package config
 
-import (
-	"github.com/NYTimes/gizmo/config"
-)
+import "github.com/NYTimes/gizmo/config"
+
+const defaultLogLevel = "info"
 
 // AppConfig holds the configuration of the application
 type AppConfig struct {
 	*config.Server
-
-	configFilePath string
+	ConfigFilePath string
 }
 
 // NewAppConfig creates a new app configuration with all the settings loaded
 func NewAppConfig(configFile string) *AppConfig {
 	cfg := &AppConfig{
-		configFilePath: configFile,
+		ConfigFilePath: configFile,
 		Server:         &config.Server{},
 	}
 
@@ -28,9 +27,9 @@ func NewAppConfig(configFile string) *AppConfig {
 func (a *AppConfig) LoadConfig() {
 
 	// If there is a config file load it
-	if a.configFilePath != "" {
-		config.LoadJSONFile(a.configFilePath, a)
-		config.LoadJSONFile(a.configFilePath, a.Server)
+	if a.ConfigFilePath != "" {
+		config.LoadJSONFile(a.ConfigFilePath, a)
+		config.LoadJSONFile(a.ConfigFilePath, a.Server)
 	}
 
 	// Load settings from env var

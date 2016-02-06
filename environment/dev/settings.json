@@ -1,3 +1,4 @@
 {
-    "HTTPPort": 4444
+    "HTTPPort": 4444,
+    "LogLevel": "debug"
 }
