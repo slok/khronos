@@ -12,6 +12,7 @@ default:build
 
 # Removes all the images
 clean:
+	rm -rf ./bin
 	docker images -q --filter "dangling=true"|xargs docker rmi -f
 
 # Stops all the cointainers
@@ -39,14 +40,15 @@ build: docker_build
 # Builds the application binary
 app_build: docker_build
 	cd environment/dev && \
-		${DOCKER_COMPOSE_CMD_DEV} run --rm app /bin/bash -ci  "./environment/dev/build.sh; go build -o ${PROJECT_NAME}.bin ./main.go"; \
+		${DOCKER_COMPOSE_CMD_DEV} run --rm app /bin/bash -ci  "./environment/dev/build.sh; \
+			go build -o bin/${PROJECT_NAME}d ./cmd/khronosd/main.go"; \
 		${DOCKER_COMPOSE_CMD_DEV} stop; \
 		${DOCKER_COMPOSE_CMD_DEV} rm -f
 
 # Runs the applications
 dev: docker_build
 	cd environment/dev && \
-		${DOCKER_COMPOSE_CMD_DEV} run --rm --service-ports app /bin/bash -ci "./environment/dev/build.sh;go run ./main.go"; \
+		${DOCKER_COMPOSE_CMD_DEV} run --rm --service-ports app /bin/bash -ci "./environment/dev/build.sh;go run ./cmd/khronosd/main.go"; \
 		${DOCKER_COMPOSE_CMD_DEV} stop; \
 		${DOCKER_COMPOSE_CMD_DEV} rm -f
 

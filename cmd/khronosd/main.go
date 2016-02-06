@@ -1,3 +1,5 @@
+// Khornos daemon
+
 package main
 
 import (

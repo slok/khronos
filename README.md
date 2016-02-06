@@ -30,7 +30,7 @@ any command
 To run with specific settings you can use the `KHRONOS_CONFIG_FILE` env var,
 for example:
 
-    $ KHRONOS_CONFIG_FILE="`pwd`/environment/dev/settings.json" go run ./main.go
+    $ KHRONOS_CONFIG_FILE="`pwd`/environment/dev/settings.json" go run ./cmd/khronosd/main.go
 
 ### Others
 
