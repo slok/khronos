@@ -1,4 +1,4 @@
-.PHONY: clean stop rm docker_build build app_build dev test shell up
+.PHONY: clean stop rm docker_build build app_build dev test shell up ci_test ci_bootstrap
 
 # Important:
 PROJECT_NAME=khronos
@@ -75,4 +75,5 @@ ci_test:
 	KHRONOS_CONFIG_FILE="`pwd`/environment/ci/settings.json" go test ./service -v
 
 ci_bootstrap:
+	go get github.com/Masterminds/glide
 	glide install
