@@ -1,6 +1,8 @@
 Khronos
 =======
 
+[![Build Status](https://travis-ci.org/slok/khronos.svg?branch=master)](https://travis-ci.org/slok/khronos)
+
 Khronos is a modern replacement of cron for microservice architecture.
 
 
