@@ -17,23 +17,30 @@ func NewAppConfig(configFile string) *AppConfig {
 		Server:         &config.Server{},
 	}
 
-	cfg.LoadConfig()
+	cfg.ConfigureApp()
 
 	return cfg
 }
 
-// LoadConfig loads all the application settings with a priority:
-// First loads settings from file, then loads the settings from env vars
-func (a *AppConfig) LoadConfig() {
+func (a *AppConfig) loadConfigFromFile() {
+	config.LoadJSONFile(a.ConfigFilePath, a)
+	config.LoadJSONFile(a.ConfigFilePath, a.Server)
+}
 
-	// If there is a config file load it
-	if a.ConfigFilePath != "" {
-		config.LoadJSONFile(a.ConfigFilePath, a)
-		config.LoadJSONFile(a.ConfigFilePath, a.Server)
-	}
-
-	// Load settings from env var
+func (a *AppConfig) loadConfigFromEnv() {
 	config.LoadEnvConfig(a)
 	config.LoadEnvConfig(a.Server)
+}
 
+// ConfigureApp loads all the application settings with a priority: First loads
+// settings from file, then loads the settings from env vars.
+// Initializes the required stuff (like databases)
+func (a *AppConfig) ConfigureApp() {
+
+	// Load configurations
+	// Only load config file if present
+	if a.ConfigFilePath != "" {
+		a.loadConfigFromFile()
+	}
+	a.loadConfigFromEnv()
 }

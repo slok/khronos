@@ -1,0 +1,5 @@
+{
+    "HTTPAccessLog": "/var/log/khronos/access.log",
+    "HTTPPort": 98765,
+    "LogLevel": "warning"
+}

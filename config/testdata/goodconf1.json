@@ -1,0 +1,5 @@
+{
+    "HTTPPort": 12345,
+    "LogLevel": "debug",
+    "HTTPAccessLog": "/tmp/access.log"
+}
