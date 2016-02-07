@@ -8,6 +8,8 @@ DC_BIN=docker-compose
 DOCKER_COMPOSE_CMD_DEV=${DC_BIN} -p ${PROJECT_NAME} -f ../docker-compose.yml -f ./docker-compose.dev.yml
 
 
+TEST_PACKAGES=./service ./config
+
 default:build
 
 # Removes all the images
@@ -55,7 +57,7 @@ dev: docker_build
 # Runs test suite
 test: docker_build
 	cd environment/dev && \
-		${DOCKER_COMPOSE_CMD_DEV} run --rm app /bin/bash -ci "./environment/dev/build.sh;go test ./..."; \
+		${DOCKER_COMPOSE_CMD_DEV} run --rm app /bin/bash -ci "./environment/dev/build.sh;go test ${TEST_PACKAGES} -v"; \
 		${DOCKER_COMPOSE_CMD_DEV} rm -f
 
 # Loads a shell without binded ports
@@ -72,7 +74,7 @@ authors:
 	-git log --format='%aN <%aE>' | LC_ALL=C.UTF-8 sort -uf > ./AUTHORS
 
 ci_test:
-	KHRONOS_CONFIG_FILE="`pwd`/environment/ci/settings.json" go test ./service -v
+	KHRONOS_CONFIG_FILE="`pwd`/environment/ci/settings.json" go test ${TEST_PACKAGES} -v
 
 ci_bootstrap:
 	go get github.com/Masterminds/glide
