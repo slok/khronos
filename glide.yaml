@@ -4,3 +4,5 @@ import:
   subpackages:
   - config
   - server
+- package: github.com/robfig/cron
+- package: github.com/boltdb/bolt

@@ -1,6 +1,8 @@
-hash: 751b832740f98758d999920b5bc5be0d6261e2061e96759239d653ab91eff7a7
-updated: 2016-02-06T11:19:07.025291794Z
+hash: 3f44477db7037dc2d793fd5ccb23d36d307f7688e9ccde289ee80511ed9c4958
+updated: 2016-02-08T18:35:33.450774285Z
 imports:
+- name: github.com/boltdb/bolt
+  version: 2f846c3551b76d7710f159be840d66c3d064abbe
 - name: github.com/cyberdelia/go-metrics-graphite
   version: 7e54b5c2aa6eaff4286c44129c3def899dff528c
 - name: github.com/golang/protobuf
@@ -37,6 +39,8 @@ imports:
   version: a5276429b5aadf067486dcb082e41a600c757d2c
 - name: github.com/rcrowley/go-metrics
   version: 51425a2415d21afadfd55cd93432c0bc69e9598d
+- name: github.com/robfig/cron
+  version: 32d9c273155a0506d27cf73dd1246e86a470997e
 - name: github.com/Sirupsen/logrus
   version: be52937128b38f1d99787bb476c789e2af1147f1
 - name: golang.org/x/net
