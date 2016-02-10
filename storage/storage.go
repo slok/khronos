@@ -17,6 +17,7 @@ type Client interface {
 // Nil implements the Storage interface everything to nil
 type Nil struct{}
 
+// NewNil creates a nil storege client instance
 func NewNil() *Nil {
 	logrus.Debug("New Nil storage client created")
 	return &Nil{}
