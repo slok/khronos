@@ -7,9 +7,17 @@ import (
 	"testing"
 
 	"github.com/NYTimes/gizmo/server"
+
+	"github.com/slok/khronos/config"
+	"github.com/slok/khronos/storage"
 )
 
-func TestPingGETEndpoint(t *testing.T) {
+var (
+	testConfig        = &config.AppConfig{}
+	testStorageClient = storage.NewNil()
+)
+
+func TestPing(t *testing.T) {
 
 	// Testing data
 	tests := []struct {
@@ -20,7 +28,7 @@ func TestPingGETEndpoint(t *testing.T) {
 		{
 			givenURI: "/api/v1/ping",
 			wantCode: http.StatusOK,
-			wantBody: "pong",
+			wantBody: "\"pong\"\n",
 		},
 	}
 
@@ -31,7 +39,10 @@ func TestPingGETEndpoint(t *testing.T) {
 		testServer := server.NewSimpleServer(nil)
 
 		// Register our service on the server (we don't need configuration for this service)
-		testServer.Register(&Service{})
+		testServer.Register(&KhronosService{
+			Config: testConfig,
+			Client: testStorageClient,
+		})
 
 		// Create request and a test recorder
 		r, _ := http.NewRequest("GET", test.givenURI, nil)
@@ -41,9 +52,9 @@ func TestPingGETEndpoint(t *testing.T) {
 			t.Errorf("Expected response code '%d'. Got '%d' instead ", test.wantCode, w.Code)
 		}
 
-		b, _ := ioutil.ReadAll(w.Body)
-		if string(b) != test.wantBody {
-			t.Errorf("Expected body '%s'. Got '%s' instead ", test.wantBody, string(b))
+		got, _ := ioutil.ReadAll(w.Body)
+		if string(got) != test.wantBody {
+			t.Errorf("Expected body '%s'. Got '%s' instead ", test.wantBody, string(got))
 		}
 	}
 

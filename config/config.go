@@ -2,11 +2,10 @@ package config
 
 import "github.com/NYTimes/gizmo/config"
 
-const defaultLogLevel = "info"
-
 // AppConfig holds the configuration of the application
 type AppConfig struct {
 	*config.Server
+	*BoltDB
 	ConfigFilePath string
 }
 
@@ -25,16 +24,17 @@ func NewAppConfig(configFile string) *AppConfig {
 func (a *AppConfig) loadConfigFromFile() {
 	config.LoadJSONFile(a.ConfigFilePath, a)
 	config.LoadJSONFile(a.ConfigFilePath, a.Server)
+	config.LoadJSONFile(a.ConfigFilePath, a.BoltDB)
 }
 
 func (a *AppConfig) loadConfigFromEnv() {
 	config.LoadEnvConfig(a)
 	config.LoadEnvConfig(a.Server)
+	config.LoadEnvConfig(a.BoltDB)
 }
 
 // ConfigureApp loads all the application settings with a priority: First loads
 // settings from file, then loads the settings from env vars.
-// Initializes the required stuff (like databases)
 func (a *AppConfig) ConfigureApp() {
 
 	// Load configurations

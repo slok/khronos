@@ -9,6 +9,7 @@ import (
 
 	"github.com/slok/khronos/config"
 	"github.com/slok/khronos/service"
+	"github.com/slok/khronos/storage"
 )
 
 const khronosConfigFile = "KHRONOS_CONFIG_FILE"
@@ -21,8 +22,10 @@ func main() {
 	cfg := config.NewAppConfig(configFile)
 	server.Init("khronos", cfg.Server)
 
+	// Create the storage client
+
 	// Load service
-	khronosService := service.NewService(cfg)
+	khronosService := service.NewKhronosService(cfg, storage.NewNil())
 
 	// Register the service on the server
 	err := server.Register(khronosService)

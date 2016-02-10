@@ -1,4 +1,5 @@
 {
     "HTTPPort": 4444,
-    "LogLevel": "debug"
+    "LogLevel": "debug",
+    "BoltDBPath": "khronos.db"
 }
