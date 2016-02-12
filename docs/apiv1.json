@@ -1,0 +1,106 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "Khronos API",
+        "description": "Manage your cron jobs remotely",
+        "version": "1.0.0"
+    },
+    "host": "khronosd.org:4444",
+    "schemes": [
+        "http"
+    ],
+    "basePath": "/api/v1",
+    "produces": [
+        "application/json"
+    ],
+    "paths": {
+        "/ping": {
+            "get": {
+                "summary": "App status",
+                "description": "Comunicates if the the app is working ok",
+                "responses": {
+                    "200": {
+                        "description": "App working ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/jobs": {
+            "get": {
+                "summary": "Registered jobs",
+                "description": "The Jobs endpoint returns information about the active registered jobs by default\n",
+                "parameters": [
+                    {
+                        "name": "disabled",
+                        "in": "query",
+                        "description": "disabled cronjobs",
+                        "required": false,
+                        "type": "boolean"
+                    }
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "An array of jobs",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Job"
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No jobs registered"
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "Job": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Unique identifier job id"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Display name of job."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Description of job."
+                },
+                "when": {
+                    "type": "string",
+                    "description": "Cron job [format](https://godoc.org/github.com/robfig/cron)"
+                },
+                "active": {
+                    "type": "boolean",
+                    "description": "Activated or deactivated state of the job"
+                }
+            }
+        },
+        "Error": {
+            "type": "string"
+        }
+    }
+}
