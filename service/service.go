@@ -46,9 +46,13 @@ func (s *KhronosService) JSONMiddleware(j server.JSONEndpoint) server.JSONEndpoi
 func (s *KhronosService) JSONEndpoints() map[string]map[string]server.JSONEndpoint {
 	return map[string]map[string]server.JSONEndpoint{
 
-		// ping is used to check the service is alive
 		"/ping": map[string]server.JSONEndpoint{
-			"GET": s.ping,
+			// ping is used to check the service is alive
+			"GET": s.Ping,
+		},
+
+		"/jobs": map[string]server.JSONEndpoint{
+			"GET": s.GetAllJobs,
 		},
 	}
 }
