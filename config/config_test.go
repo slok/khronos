@@ -41,6 +41,7 @@ func TestCheckConfigFromFile(t *testing.T) {
 		cfg := &AppConfig{
 			ConfigFilePath: test.givenConfigFile,
 			Server:         &config.Server{},
+			BoltDB:         &BoltDB{},
 		}
 		cfg.loadConfigFromFile()
 
@@ -87,7 +88,10 @@ func TestCheckConfigFromEnv(t *testing.T) {
 		os.Setenv("APP_LOG_LEVEL", test.givenLogLevel)
 		os.Setenv("HTTP_PORT", strconv.Itoa(test.givenHTTPPort))
 
-		cfg := &AppConfig{Server: &config.Server{}}
+		cfg := &AppConfig{
+			Server: &config.Server{},
+			BoltDB: &BoltDB{},
+		}
 		cfg.loadConfigFromEnv()
 
 		if cfg.LogLevel != test.wantedLogLevel {
@@ -139,6 +143,7 @@ func TestConfigureApp(t *testing.T) {
 		cfg := &AppConfig{
 			ConfigFilePath: test.givenConfigFile,
 			Server:         &config.Server{},
+			BoltDB:         &BoltDB{},
 		}
 		cfg.ConfigureApp()
 
