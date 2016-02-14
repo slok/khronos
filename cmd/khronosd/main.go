@@ -25,7 +25,7 @@ func main() {
 	// Create the storage client
 
 	// Load service
-	khronosService := service.NewKhronosService(cfg, storage.NewNil())
+	khronosService := service.NewKhronosService(cfg, storage.NewDummy())
 
 	// Register the service on the server
 	err := server.Register(khronosService)
