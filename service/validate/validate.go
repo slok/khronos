@@ -1,5 +1,4 @@
-// Package validate implements utilities to validate properties of objects that implement
-// validator interface
+// Package validate implements utilities to validate properties and objects
 package validate
 
 import (
