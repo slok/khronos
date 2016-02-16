@@ -1,9 +1,6 @@
 package validate
 
-import (
-	"reflect"
-	"testing"
-)
+import "testing"
 
 func TestValidCron(t *testing.T) {
 
@@ -31,60 +28,4 @@ func TestValidCron(t *testing.T) {
 			t.Errorf("'%s' should not raise error", test.givenCron)
 		}
 	}
-}
-
-func TestValidString(t *testing.T) {
-
-	tests := []struct {
-		givenString string
-		wantError   bool
-	}{
-		{givenString: "", wantError: true},
-		{givenString: "test", wantError: false},
-	}
-
-	for _, test := range tests {
-		err := ValidString(test.givenString)
-
-		if test.wantError && err == nil {
-			t.Errorf("'%s' should raise error", test.givenString)
-		}
-
-		if !test.wantError && err != nil {
-			t.Errorf("'%s' should not raise error", test.givenString)
-		}
-	}
-}
-
-func TestHTTPJobValidatorJSON(t *testing.T) {
-	tests := []struct {
-		givenJSON     string
-		wantValidator HTTPJobValidator
-	}{
-		{
-			givenJSON: `{"active": true, "description": "Simple hello world", "url": "http://crons.test.com/hello-world", "when": "@daily", "name": "hello-world"}`,
-			wantValidator: HTTPJobValidator{
-				Name:        "hello-world",
-				Description: "Simple hello world",
-				When:        "@daily",
-				Active:      true,
-				URL:         "http://crons.test.com/hello-world",
-				Errors:      nil,
-			},
-		},
-	}
-
-	for _, test := range tests {
-		v, err := NewHTTPJobFromJSON(test.givenJSON)
-
-		if err != nil {
-			t.Error(err)
-		}
-
-		v.Errors = nil // Handy for tests
-		if !reflect.DeepEqual(*v, test.wantValidator) {
-			t.Errorf("Validators are not equal; expected %v; got %v", test.wantValidator, *v)
-		}
-	}
-
 }

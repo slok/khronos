@@ -2,9 +2,9 @@ package validate
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/slok/khronos/job"
 )
 
 // HTTPJobValidator implements the requirements of a validator in order to
@@ -20,8 +20,8 @@ type HTTPJobValidator struct {
 	Errors []error
 }
 
-// NewHTTPJobFromJSON creates a validator from a json
-func NewHTTPJobFromJSON(j string) (v *HTTPJobValidator, err error) {
+// NewHTTPJobValidatorFromJSON creates a validator from a json
+func NewHTTPJobValidatorFromJSON(j string) (v *HTTPJobValidator, err error) {
 	v = &HTTPJobValidator{}
 	err = json.Unmarshal([]byte(j), v)
 	logrus.Debug("Created HTTPJob validator from json")
@@ -29,8 +29,31 @@ func NewHTTPJobFromJSON(j string) (v *HTTPJobValidator, err error) {
 }
 
 // Validate validates the validator and creates teh correct instance
-func (v *HTTPJobValidator) Validate() (j job.HTTPJob, err error) {
+func (v *HTTPJobValidator) Validate() error {
 	logrus.Debug("Validating job '%s'", v.Name)
-	logrus.Error("Not implemented")
-	return
+
+	// Flush previous errors
+	v.Errors = []error{}
+
+	// Check required fields
+	if v.Name == "" {
+		v.Errors = append(v.Errors, errors.New("Name is required"))
+	}
+	if v.When == "" {
+		v.Errors = append(v.Errors, errors.New("When is required"))
+	}
+	if v.URL == "" {
+		v.Errors = append(v.Errors, errors.New("URL is required"))
+	}
+
+	// Check valid cron
+	if err := ValidCron(v.When); err != nil {
+		v.Errors = append(v.Errors, errors.New("When is not a valid cron"))
+	}
+
+	if len(v.Errors) > 0 {
+		return errors.New("Not valid HTTPJob")
+	}
+
+	return nil
 }
