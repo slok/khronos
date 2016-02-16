@@ -52,7 +52,10 @@ func (s *KhronosService) JSONEndpoints() map[string]map[string]server.JSONEndpoi
 		},
 
 		"/jobs": map[string]server.JSONEndpoint{
+			// Returns all the registered jobs
 			"GET": s.GetAllJobs,
+			// Register a new job
+			"POST": s.CreateNewJob,
 		},
 	}
 }

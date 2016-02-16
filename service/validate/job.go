@@ -3,8 +3,11 @@ package validate
 import (
 	"encoding/json"
 	"errors"
+	"net/url"
 
 	"github.com/Sirupsen/logrus"
+
+	"github.com/slok/khronos/job"
 )
 
 // HTTPJobValidator implements the requirements of a validator in order to
@@ -30,7 +33,7 @@ func NewHTTPJobValidatorFromJSON(j string) (v *HTTPJobValidator, err error) {
 
 // Validate validates the validator and creates teh correct instance
 func (v *HTTPJobValidator) Validate() error {
-	logrus.Debug("Validating job '%s'", v.Name)
+	logrus.Debugf("Validating job '%s'", v.Name)
 
 	// Flush previous errors
 	v.Errors = []error{}
@@ -56,4 +59,25 @@ func (v *HTTPJobValidator) Validate() error {
 	}
 
 	return nil
+}
+
+// Instance returns a valid instance
+func (v *HTTPJobValidator) Instance() (j *job.HTTPJob, err error) {
+	if err = v.Validate(); err != nil {
+		return
+	}
+	u, err := url.ParseRequestURI(v.URL)
+	if err != nil {
+		return
+	}
+
+	return &job.HTTPJob{
+		Job: job.Job{
+			Name:        v.Name,
+			Description: v.Description,
+			When:        v.When,
+			Active:      v.Active,
+		},
+		URL: u,
+	}, nil
 }
