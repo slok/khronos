@@ -1,6 +1,7 @@
 package job
 
 import (
+	"encoding/json"
 	"net/url"
 
 	"github.com/Sirupsen/logrus"
@@ -35,4 +36,18 @@ type HTTPJob struct {
 func (h *HTTPJob) Schedule(c cron.Cron) error {
 	logrus.Debug("Schedule %s job on %s with the url $v", h.Name, h.When, *h.URL)
 	return nil
+}
+
+// MarshalJSON is a vustom json marshaller for HTTPJob
+func (h *HTTPJob) MarshalJSON() ([]byte, error) {
+	// Alias is a custo type to inherint all the properties of HTTPJob but not the methods
+	type Alias HTTPJob
+
+	return json.Marshal(struct {
+		Alias
+		URL string
+	}{
+		Alias: Alias(*h),
+		URL:   h.URL.String(),
+	})
 }
