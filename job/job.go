@@ -38,16 +38,41 @@ func (h *HTTPJob) Schedule(c cron.Cron) error {
 	return nil
 }
 
-// MarshalJSON is a vustom json marshaller for HTTPJob
+// MarshalJSON is a custom json marshaller for HTTPJob
 func (h *HTTPJob) MarshalJSON() ([]byte, error) {
-	// Alias is a custo type to inherint all the properties of HTTPJob but not the methods
+	// Alias is a custom type to inherint all the properties of HTTPJob but not the methods
 	type Alias HTTPJob
 
 	return json.Marshal(struct {
-		Alias
+		*Alias
 		URL string
 	}{
-		Alias: Alias(*h),
+		Alias: (*Alias)(h),
 		URL:   h.URL.String(),
 	})
+}
+
+// UnmarshalJSON is a custom json unmarshaller for HTTPJob
+func (h *HTTPJob) UnmarshalJSON(data []byte) error {
+	// Alias is a custom type to inherint all the properties of HTTPJob but not the methods
+	type Alias HTTPJob
+
+	aux := struct {
+		*Alias
+		URL string
+	}{
+		Alias: (*Alias)(h),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	sURL, err := url.Parse(aux.URL)
+	if err != nil {
+		return err
+	}
+
+	h.URL = sURL
+	return nil
 }
