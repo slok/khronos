@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -16,11 +17,11 @@ import (
 )
 
 var (
-	testConfig        = &config.AppConfig{}
-	testStorageClient = storage.NewDummy()
+	testConfig = &config.AppConfig{}
 )
 
 func TestPing(t *testing.T) {
+	testStorageClient := storage.NewDummy()
 
 	// Testing data
 	tests := []struct {
@@ -64,6 +65,7 @@ func TestPing(t *testing.T) {
 }
 
 func TestGetAllJobs(t *testing.T) {
+	testStorageClient := storage.NewDummy()
 
 	// Testing data
 	tests := []struct {
@@ -122,5 +124,61 @@ func TestGetAllJobs(t *testing.T) {
 			t.Errorf("Expected length '%d'. Got '%d' instead ", test.wantBodyLength, len(got))
 		}
 	}
+}
 
+func TestCreateNewJob(t *testing.T) {
+	testStorageClient := storage.NewDummy()
+
+	// Testing data
+	tests := []struct {
+		givenURI        string
+		givenBody       string
+		givenHTTPJobs   map[string]*job.HTTPJob
+		wantCode        int
+		wantBody        string
+		wantHTTPJobslen int
+	}{
+		{
+			givenURI:        "/api/v1/jobs",
+			givenBody:       `{"active": true, "description": "Simple hello world", "url": "http://crons.test.com/hello-world", "when": "@daily", "name": "hello-world"}`,
+			givenHTTPJobs:   make(map[string]*job.HTTPJob),
+			wantCode:        http.StatusCreated,
+			wantHTTPJobslen: 1,
+		},
+
+		{
+			givenURI:        "/api/v1/jobs",
+			givenBody:       `{"active": true, "description": "Simple hello world", "url": "http://crons.test.com/hello-world", "when": "@daily"}`,
+			givenHTTPJobs:   make(map[string]*job.HTTPJob),
+			wantCode:        http.StatusBadRequest,
+			wantHTTPJobslen: 0,
+		},
+	}
+
+	for _, test := range tests {
+		// Set our dummy 'database' on the storage client
+		testStorageClient.HTTPJobs = test.givenHTTPJobs
+		testStorageClient.HTTPJobCounter = len(test.givenHTTPJobs)
+
+		// Create a testing server
+		testServer := server.NewSimpleServer(nil)
+
+		// Register our service on the server (we don't need configuration for this service)
+		testServer.Register(&KhronosService{
+			Config: testConfig,
+			Client: testStorageClient,
+		})
+
+		b := bytes.NewReader([]byte(test.givenBody))
+		r, _ := http.NewRequest("POST", test.givenURI, b)
+		w := httptest.NewRecorder()
+		testServer.ServeHTTP(w, r)
+
+		if w.Code != test.wantCode {
+			t.Errorf("Expected response code '%d'. Got '%d' instead ", test.wantCode, w.Code)
+		}
+		if len(testStorageClient.HTTPJobs) != test.wantHTTPJobslen {
+			t.Errorf("Expected len '%d'. Got '%d' instead ", len(testStorageClient.HTTPJobs), test.wantHTTPJobslen)
+		}
+	}
 }
