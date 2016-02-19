@@ -34,27 +34,27 @@ func NewBoltDB(path string, timeout time.Duration) (c *BoltDB, err error) {
 	return
 }
 
-// GetHTTPJobs returns all the HTTP jobs from boltdb
-func (c *BoltDB) GetHTTPJobs() (jobs []*job.HTTPJob, err error) {
+// GetJobs returns all the HTTP jobs from boltdb
+func (c *BoltDB) GetJobs() (jobs []*job.Job, err error) {
 	return nil, errors.New("Not implemented")
 }
 
-// GetHTTPJob returns an specific HTTP job based on the ID
-func (c *BoltDB) GetHTTPJob(id int) (job *job.HTTPJob, err error) {
+// GetJob returns an specific HTTP job based on the ID
+func (c *BoltDB) GetJob(id int) (job *job.Job, err error) {
 	return nil, errors.New("Not implemented")
 }
 
-// SaveHTTPJob stores an HTTP job on boltdb
-func (c *BoltDB) SaveHTTPJob(j *job.HTTPJob) error {
+// SaveJob stores an HTTP job on boltdb
+func (c *BoltDB) SaveJob(j *job.Job) error {
 	return errors.New("Not implemented")
 }
 
-// UpdateHTTPJob updates an HTTP job on boltdb
-func (c *BoltDB) UpdateHTTPJob(j *job.HTTPJob) error {
+// UpdateJob updates an HTTP job on boltdb
+func (c *BoltDB) UpdateJob(j *job.Job) error {
 	return errors.New("Not implemented")
 }
 
-// DeleteHTTPJob deletes an HTTP job from boltdb
-func (c *BoltDB) DeleteHTTPJob(j *job.HTTPJob) error {
+// DeleteJob deletes an HTTP job from boltdb
+func (c *BoltDB) DeleteJob(j *job.Job) error {
 	return errors.New("Not implemented")
 }

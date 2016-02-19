@@ -70,21 +70,21 @@ func TestGetAllJobs(t *testing.T) {
 	// Testing data
 	tests := []struct {
 		givenURI       string
-		givenHTTPJobs  map[string]*job.HTTPJob
+		givenJobs      map[string]*job.Job
 		wantCode       int
 		wantBodyLength int
 	}{
 		{
 			givenURI:       "/api/v1/jobs",
-			givenHTTPJobs:  make(map[string]*job.HTTPJob),
+			givenJobs:      make(map[string]*job.Job),
 			wantCode:       http.StatusOK,
 			wantBodyLength: 0,
 		},
 		{
 			givenURI: "/api/v1/jobs",
-			givenHTTPJobs: map[string]*job.HTTPJob{
-				"job:test1": &job.HTTPJob{Job: job.Job{ID: 1, Name: "test1", Description: "test1", When: "@daily", Active: true}, URL: &url.URL{}},
-				"job:test2": &job.HTTPJob{Job: job.Job{ID: 2, Name: "test2", Description: "test2", When: "0 30 * * * *", Active: true}, URL: &url.URL{}},
+			givenJobs: map[string]*job.Job{
+				"job:test1": &job.Job{ID: 1, Name: "test1", Description: "test1", When: "@daily", Active: true, URL: &url.URL{}},
+				"job:test2": &job.Job{ID: 2, Name: "test2", Description: "test2", When: "0 30 * * * *", Active: true, URL: &url.URL{}},
 			},
 			wantCode:       http.StatusOK,
 			wantBodyLength: 2,
@@ -94,8 +94,8 @@ func TestGetAllJobs(t *testing.T) {
 	// Tests
 	for _, test := range tests {
 		// Set our dummy 'database' on the storage client
-		testStorageClient.HTTPJobs = test.givenHTTPJobs
-		testStorageClient.HTTPJobCounter = len(test.givenHTTPJobs)
+		testStorageClient.Jobs = test.givenJobs
+		testStorageClient.JobCounter = len(test.givenJobs)
 
 		// Create a testing server
 		testServer := server.NewSimpleServer(nil)
@@ -114,7 +114,7 @@ func TestGetAllJobs(t *testing.T) {
 			t.Errorf("Expected response code '%d'. Got '%d' instead ", test.wantCode, w.Code)
 		}
 
-		var got []*job.HTTPJob
+		var got []*job.Job
 		err := json.NewDecoder(w.Body).Decode(&got)
 		if err != nil {
 			t.Error(err)
@@ -131,34 +131,34 @@ func TestCreateNewJob(t *testing.T) {
 
 	// Testing data
 	tests := []struct {
-		givenURI        string
-		givenBody       string
-		givenHTTPJobs   map[string]*job.HTTPJob
-		wantCode        int
-		wantBody        string
-		wantHTTPJobslen int
+		givenURI    string
+		givenBody   string
+		givenJobs   map[string]*job.Job
+		wantCode    int
+		wantBody    string
+		wantJobslen int
 	}{
 		{
-			givenURI:        "/api/v1/jobs",
-			givenBody:       `{"active": true, "description": "Simple hello world", "url": "http://crons.test.com/hello-world", "when": "@daily", "name": "hello-world"}`,
-			givenHTTPJobs:   make(map[string]*job.HTTPJob),
-			wantCode:        http.StatusCreated,
-			wantHTTPJobslen: 1,
+			givenURI:    "/api/v1/jobs",
+			givenBody:   `{"active": true, "description": "Simple hello world", "url": "http://crons.test.com/hello-world", "when": "@daily", "name": "hello-world"}`,
+			givenJobs:   make(map[string]*job.Job),
+			wantCode:    http.StatusCreated,
+			wantJobslen: 1,
 		},
 
 		{
-			givenURI:        "/api/v1/jobs",
-			givenBody:       `{"active": true, "description": "Simple hello world", "url": "http://crons.test.com/hello-world", "when": "@daily"}`,
-			givenHTTPJobs:   make(map[string]*job.HTTPJob),
-			wantCode:        http.StatusBadRequest,
-			wantHTTPJobslen: 0,
+			givenURI:    "/api/v1/jobs",
+			givenBody:   `{"active": true, "description": "Simple hello world", "url": "http://crons.test.com/hello-world", "when": "@daily"}`,
+			givenJobs:   make(map[string]*job.Job),
+			wantCode:    http.StatusBadRequest,
+			wantJobslen: 0,
 		},
 	}
 
 	for _, test := range tests {
 		// Set our dummy 'database' on the storage client
-		testStorageClient.HTTPJobs = test.givenHTTPJobs
-		testStorageClient.HTTPJobCounter = len(test.givenHTTPJobs)
+		testStorageClient.Jobs = test.givenJobs
+		testStorageClient.JobCounter = len(test.givenJobs)
 
 		// Create a testing server
 		testServer := server.NewSimpleServer(nil)
@@ -177,8 +177,8 @@ func TestCreateNewJob(t *testing.T) {
 		if w.Code != test.wantCode {
 			t.Errorf("Expected response code '%d'. Got '%d' instead ", test.wantCode, w.Code)
 		}
-		if len(testStorageClient.HTTPJobs) != test.wantHTTPJobslen {
-			t.Errorf("Expected len '%d'. Got '%d' instead ", len(testStorageClient.HTTPJobs), test.wantHTTPJobslen)
+		if len(testStorageClient.Jobs) != test.wantJobslen {
+			t.Errorf("Expected len '%d'. Got '%d' instead ", len(testStorageClient.Jobs), test.wantJobslen)
 		}
 	}
 }

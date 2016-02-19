@@ -10,9 +10,9 @@ import (
 	"github.com/slok/khronos/job"
 )
 
-// HTTPJobValidator implements the requirements of a validator in order to
-// be able to create correct HTTPJobs
-type HTTPJobValidator struct {
+// JobValidator implements the requirements of a validator in order to
+// be able to create correct Jobs
+type JobValidator struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	When        string `json:"when"`
@@ -23,16 +23,16 @@ type HTTPJobValidator struct {
 	Errors []error
 }
 
-// NewHTTPJobValidatorFromJSON creates a validator from a json
-func NewHTTPJobValidatorFromJSON(j string) (v *HTTPJobValidator, err error) {
-	v = &HTTPJobValidator{}
+// NewJobValidatorFromJSON creates a validator from a json
+func NewJobValidatorFromJSON(j string) (v *JobValidator, err error) {
+	v = &JobValidator{}
 	err = json.Unmarshal([]byte(j), v)
-	logrus.Debug("Created HTTPJob validator from json")
+	logrus.Debug("Created Job validator from json")
 	return
 }
 
 // Validate validates the validator and creates teh correct instance
-func (v *HTTPJobValidator) Validate() error {
+func (v *JobValidator) Validate() error {
 	logrus.Debugf("Validating job '%s'", v.Name)
 
 	// Flush previous errors
@@ -55,14 +55,14 @@ func (v *HTTPJobValidator) Validate() error {
 	}
 
 	if len(v.Errors) > 0 {
-		return errors.New("Not valid HTTPJob")
+		return errors.New("Not valid Job")
 	}
 
 	return nil
 }
 
 // Instance returns a valid instance
-func (v *HTTPJobValidator) Instance() (j *job.HTTPJob, err error) {
+func (v *JobValidator) Instance() (j *job.Job, err error) {
 	if err = v.Validate(); err != nil {
 		return
 	}
@@ -71,13 +71,11 @@ func (v *HTTPJobValidator) Instance() (j *job.HTTPJob, err error) {
 		return
 	}
 
-	return &job.HTTPJob{
-		Job: job.Job{
-			Name:        v.Name,
-			Description: v.Description,
-			When:        v.When,
-			Active:      v.Active,
-		},
-		URL: u,
+	return &job.Job{
+		Name:        v.Name,
+		Description: v.Description,
+		When:        v.When,
+		Active:      v.Active,
+		URL:         u,
 	}, nil
 }

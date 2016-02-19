@@ -6,14 +6,14 @@ import (
 	"testing"
 )
 
-func TestHTTPJobValidatorJSON(t *testing.T) {
+func TestJobValidatorJSON(t *testing.T) {
 	tests := []struct {
 		givenJSON     string
-		wantValidator HTTPJobValidator
+		wantValidator JobValidator
 	}{
 		{
 			givenJSON: `{"active": true, "description": "Simple hello world", "url": "http://crons.test.com/hello-world", "when": "@daily", "name": "hello-world"}`,
-			wantValidator: HTTPJobValidator{
+			wantValidator: JobValidator{
 				Name:        "hello-world",
 				Description: "Simple hello world",
 				When:        "@daily",
@@ -25,7 +25,7 @@ func TestHTTPJobValidatorJSON(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		v, err := NewHTTPJobValidatorFromJSON(test.givenJSON)
+		v, err := NewJobValidatorFromJSON(test.givenJSON)
 
 		if err != nil {
 			t.Error(err)
@@ -39,14 +39,14 @@ func TestHTTPJobValidatorJSON(t *testing.T) {
 
 }
 
-func TestHTTPJobValidatorValidation(t *testing.T) {
+func TestJobValidatorValidation(t *testing.T) {
 	tests := []struct {
-		givenValidator *HTTPJobValidator
+		givenValidator *JobValidator
 		wantError      bool
 		wantErrors     []error
 	}{
 		{
-			givenValidator: &HTTPJobValidator{
+			givenValidator: &JobValidator{
 				Name:        "hello-world",
 				Description: "Simple hello world",
 				When:        "@daily",
@@ -57,7 +57,7 @@ func TestHTTPJobValidatorValidation(t *testing.T) {
 			wantErrors: []error{},
 		},
 		{
-			givenValidator: &HTTPJobValidator{},
+			givenValidator: &JobValidator{},
 			wantError:      true,
 			wantErrors: []error{
 				errors.New("Name is required"),
@@ -66,7 +66,7 @@ func TestHTTPJobValidatorValidation(t *testing.T) {
 				errors.New("When is not a valid cron"),
 			},
 		}, {
-			givenValidator: &HTTPJobValidator{
+			givenValidator: &JobValidator{
 				Name: "hello-world",
 				When: "@daily",
 				URL:  "http://crons.test.com/hello-world",
@@ -74,7 +74,7 @@ func TestHTTPJobValidatorValidation(t *testing.T) {
 			wantError:  false,
 			wantErrors: []error{},
 		}, {
-			givenValidator: &HTTPJobValidator{
+			givenValidator: &JobValidator{
 				Description: "Simple hello world",
 				When:        "@daily",
 				Active:      true,

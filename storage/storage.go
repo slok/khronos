@@ -7,11 +7,11 @@ import (
 
 // Client implements the client of an storage
 type Client interface {
-	GetHTTPJobs() (jobs []*job.HTTPJob, err error)
-	GetHTTPJob(id int) (job *job.HTTPJob, err error)
-	SaveHTTPJob(j *job.HTTPJob) error
-	UpdateHTTPJob(j *job.HTTPJob) error
-	DeleteHTTPJob(j *job.HTTPJob) error
+	GetJobs() (jobs []*job.Job, err error)
+	GetJob(id int) (job *job.Job, err error)
+	SaveJob(j *job.Job) error
+	UpdateJob(j *job.Job) error
+	DeleteJob(j *job.Job) error
 }
 
 // Nil implements the Storage interface everything to nil
@@ -23,8 +23,8 @@ func NewNil() *Nil {
 	return &Nil{}
 }
 
-func (c *Nil) GetHTTPJobs() (jobs []*job.HTTPJob, err error)   { return nil, nil }
-func (c *Nil) GetHTTPJob(id int) (job *job.HTTPJob, err error) { return nil, nil }
-func (c *Nil) SaveHTTPJob(j *job.HTTPJob) error                { return nil }
-func (c *Nil) UpdateHTTPJob(j *job.HTTPJob) error              { return nil }
-func (c *Nil) DeleteHTTPJob(j *job.HTTPJob) error              { return nil }
+func (c *Nil) GetJobs() (jobs []*job.Job, err error)   { return nil, nil }
+func (c *Nil) GetJob(id int) (job *job.Job, err error) { return nil, nil }
+func (c *Nil) SaveJob(j *job.Job) error                { return nil }
+func (c *Nil) UpdateJob(j *job.Job) error              { return nil }
+func (c *Nil) DeleteJob(j *job.Job) error              { return nil }
