@@ -25,7 +25,7 @@ func (s *KhronosService) Ping(r *http.Request) (int, interface{}, error) {
 func (s *KhronosService) GetAllJobs(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Calling GetAllJobs endpoint")
 
-	jobs, err := s.Client.GetHTTPJobs()
+	jobs, err := s.Client.GetJobs()
 
 	if err != nil {
 		logrus.Errorf("Error retrieving all jobs: %v", err)
@@ -42,7 +42,7 @@ func (s *KhronosService) CreateNewJob(r *http.Request) (int, interface{}, error)
 	defer r.Body.Close()
 
 	// Unmarshall tje received json
-	v, err := validate.NewHTTPJobValidatorFromJSON(string(b))
+	v, err := validate.NewJobValidatorFromJSON(string(b))
 	if err != nil {
 		logrus.Errorf("Error unmarshalling json: %v", err)
 		return http.StatusInternalServerError, errorCreatingJobMsg, nil
@@ -69,7 +69,7 @@ func (s *KhronosService) CreateNewJob(r *http.Request) (int, interface{}, error)
 		return http.StatusInternalServerError, errorCreatingJobMsg, nil
 
 	}
-	err = s.Client.SaveHTTPJob(j)
+	err = s.Client.SaveJob(j)
 	if err != nil {
 		logrus.Errorf("Error storing job: %v", err)
 		return http.StatusInternalServerError, errorCreatingJobMsg, nil

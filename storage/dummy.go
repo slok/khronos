@@ -15,88 +15,88 @@ const jobKeyFmt = "job:%d"
 // Dummy implements the Storage interface everything to a local memory map
 type Dummy struct {
 	// Our memory database
-	HTTPJobs       map[string]*job.HTTPJob
-	HTTPJobCounter int
-	httpJobsMutex  *sync.Mutex
+	Jobs       map[string]*job.Job
+	JobCounter int
+	jobsMutex  *sync.Mutex
 }
 
 // NewDummy creates a client that stores on memory
 func NewDummy() *Dummy {
 	logrus.Debug("New Dummy storage client created")
 	return &Dummy{
-		HTTPJobs:       map[string]*job.HTTPJob{},
-		HTTPJobCounter: 0,
-		httpJobsMutex:  &sync.Mutex{},
+		Jobs:       map[string]*job.Job{},
+		JobCounter: 0,
+		jobsMutex:  &sync.Mutex{},
 	}
 }
 
-// GetHTTPJobs returns all the http jobs stored on memory
-func (c *Dummy) GetHTTPJobs() (jobs []*job.HTTPJob, err error) {
-	c.httpJobsMutex.Lock()
-	defer c.httpJobsMutex.Unlock()
-	if c.HTTPJobs == nil {
+// GetJobs returns all the http jobs stored on memory
+func (c *Dummy) GetJobs() (jobs []*job.Job, err error) {
+	c.jobsMutex.Lock()
+	defer c.jobsMutex.Unlock()
+	if c.Jobs == nil {
 		return nil, errors.New("Error retrieving jobs")
 	}
 
-	for _, v := range c.HTTPJobs {
+	for _, v := range c.Jobs {
 		jobs = append(jobs, v)
 	}
 	return jobs, nil
 }
 
-// GetHTTPJob returns a job from memory
-func (c *Dummy) GetHTTPJob(id int) (job *job.HTTPJob, err error) {
-	c.httpJobsMutex.Lock()
-	defer c.httpJobsMutex.Unlock()
+// GetJob returns a job from memory
+func (c *Dummy) GetJob(id int) (job *job.Job, err error) {
+	c.jobsMutex.Lock()
+	defer c.jobsMutex.Unlock()
 
 	key := fmt.Sprintf(jobKeyFmt, id)
-	j, ok := c.HTTPJobs[key]
+	j, ok := c.Jobs[key]
 	if !ok {
 		return nil, errors.New("Not existent job")
 	}
 	return j, nil
 }
 
-// SaveHTTPJob stores a job on memory
-func (c *Dummy) SaveHTTPJob(j *job.HTTPJob) error {
-	c.httpJobsMutex.Lock()
-	defer c.httpJobsMutex.Unlock()
+// SaveJob stores a job on memory
+func (c *Dummy) SaveJob(j *job.Job) error {
+	c.jobsMutex.Lock()
+	defer c.jobsMutex.Unlock()
 
-	c.HTTPJobCounter++
-	j.ID = c.HTTPJobCounter
+	c.JobCounter++
+	j.ID = c.JobCounter
 	key := fmt.Sprintf(jobKeyFmt, j.ID)
-	c.HTTPJobs[key] = j
+	c.Jobs[key] = j
 
 	// Never conflict (always creates a new id)
 	return nil
 }
 
-// UpdateHTTPJob updates a present job on memory
-func (c *Dummy) UpdateHTTPJob(j *job.HTTPJob) error {
-	c.httpJobsMutex.Lock()
-	defer c.httpJobsMutex.Unlock()
+// UpdateJob updates a present job on memory
+func (c *Dummy) UpdateJob(j *job.Job) error {
+	c.jobsMutex.Lock()
+	defer c.jobsMutex.Unlock()
 
 	key := fmt.Sprintf(jobKeyFmt, j.ID)
 
-	if _, ok := c.HTTPJobs[key]; !ok {
+	if _, ok := c.Jobs[key]; !ok {
 		return errors.New("Not existent job")
 	}
 
-	c.HTTPJobs[key] = j
+	c.Jobs[key] = j
 	return nil
 }
 
-// DeleteHTTPJob Deletes a job on memory
-func (c *Dummy) DeleteHTTPJob(j *job.HTTPJob) error {
-	c.httpJobsMutex.Lock()
-	defer c.httpJobsMutex.Unlock()
+// DeleteJob Deletes a job on memory
+func (c *Dummy) DeleteJob(j *job.Job) error {
+	c.jobsMutex.Lock()
+	defer c.jobsMutex.Unlock()
 
 	key := fmt.Sprintf(jobKeyFmt, j.ID)
 
-	if _, ok := c.HTTPJobs[key]; !ok {
+	if _, ok := c.Jobs[key]; !ok {
 		return errors.New("Not existent job")
 	}
 
-	delete(c.HTTPJobs, key)
+	delete(c.Jobs, key)
 	return nil
 }
