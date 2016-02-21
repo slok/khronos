@@ -5,16 +5,17 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+
 	"github.com/slok/khronos/job"
 )
 
-// Scheduler implements the unit of execution of a job, a job is composed of
-// a chain of schedulers
+// Scheduler implements the unit of execution of a job, it mus implement run method
+// this method will be the one that will execute job logic
 type Scheduler interface {
 	Run(*job.Result, *job.Job)
 }
 
-// Schedulerfunc wraps the unit of execution in a function
+// SchedulerFunc is a handy scheduler that runs the function itself
 type SchedulerFunc func(*job.Result, *job.Job)
 
 // Run implements the start of the execution

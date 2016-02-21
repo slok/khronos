@@ -1,7 +1,8 @@
 // Package schedule implements all the scheduling of jobs. The approach used to
 // implement is the same as the http golang library style.
-// We have schedulers and schedulerfuncs that will be executed.
-// Schedulers are in a chain, this chain will be run and will execute the first
-// scheduler, then this will execute the next scheduler and so on.
-// The unit of execution is the schedulerfunc that receives the result and the job
+// We have Schedulers that will be executed (Run method).
+// We have SchedulerFunc that is a wrap of a function to convert it to an schedule
+// object and be able to run.
+// like http middlewares, we create schedulers with functions that receive other schedulers as
+// parameters and create a chain (schedule/chain)
 package schedule
