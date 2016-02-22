@@ -42,6 +42,7 @@ func TestCheckConfigFromFile(t *testing.T) {
 			ConfigFilePath: test.givenConfigFile,
 			Server:         &config.Server{},
 			BoltDB:         &BoltDB{},
+			Khronos:        &Khronos{},
 		}
 		cfg.loadConfigFromFile()
 
@@ -89,8 +90,9 @@ func TestCheckConfigFromEnv(t *testing.T) {
 		os.Setenv("HTTP_PORT", strconv.Itoa(test.givenHTTPPort))
 
 		cfg := &AppConfig{
-			Server: &config.Server{},
-			BoltDB: &BoltDB{},
+			Server:  &config.Server{},
+			BoltDB:  &BoltDB{},
+			Khronos: &Khronos{},
 		}
 		cfg.loadConfigFromEnv()
 
@@ -144,6 +146,7 @@ func TestConfigureApp(t *testing.T) {
 			ConfigFilePath: test.givenConfigFile,
 			Server:         &config.Server{},
 			BoltDB:         &BoltDB{},
+			Khronos:        &Khronos{},
 		}
 		cfg.ConfigureApp()
 

@@ -4,8 +4,16 @@ import "github.com/NYTimes/gizmo/config"
 
 // AppConfig holds the configuration of the application
 type AppConfig struct {
+	// Server configuration
 	*config.Server
+
+	// BoltDB configuration
 	*BoltDB
+
+	// Service configuration
+	*Khronos
+
+	// Json Configuration path
 	ConfigFilePath string
 }
 
@@ -14,6 +22,7 @@ func NewAppConfig(configFile string) *AppConfig {
 	cfg := &AppConfig{
 		ConfigFilePath: configFile,
 		Server:         &config.Server{},
+		Khronos:        &Khronos{},
 	}
 
 	cfg.ConfigureApp()
@@ -43,4 +52,7 @@ func (a *AppConfig) ConfigureApp() {
 		a.loadConfigFromFile()
 	}
 	a.loadConfigFromEnv()
+
+	// load khronos configuration
+	a.Khronos.LoadKhronosConfig(a)
 }
