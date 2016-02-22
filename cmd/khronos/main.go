@@ -8,6 +8,7 @@ import (
 	"github.com/NYTimes/gizmo/server"
 
 	"github.com/slok/khronos/config"
+	"github.com/slok/khronos/schedule"
 	"github.com/slok/khronos/service"
 	"github.com/slok/khronos/storage"
 )
@@ -23,9 +24,14 @@ func main() {
 	server.Init("khronos", cfg.Server)
 
 	// Create the storage client
+	stCli := storage.NewDummy()
+
+	// Create scheduler and start
+	cr := schedule.NewDummyCron(cfg, 0, "OK")
+	cr.Start()
 
 	// Load service
-	khronosService := service.NewKhronosService(cfg, storage.NewDummy())
+	khronosService := service.NewKhronosService(cfg, stCli, cr)
 
 	// Register the service on the server
 	err := server.Register(khronosService)

@@ -7,6 +7,7 @@ import (
 	"github.com/Sirupsen/logrus"
 
 	"github.com/slok/khronos/config"
+	"github.com/slok/khronos/schedule"
 	"github.com/slok/khronos/storage"
 )
 
@@ -16,14 +17,16 @@ const prefix = "/api/v1"
 type KhronosService struct {
 	Config *config.AppConfig
 	Client storage.Client
+	Cron   *schedule.Cron
 }
 
 //NewKhronosService creates a service object ready to be served.
-func NewKhronosService(cfg *config.AppConfig, client storage.Client) *KhronosService {
+func NewKhronosService(cfg *config.AppConfig, client storage.Client, cron *schedule.Cron) *KhronosService {
 	logrus.Debug("New Khronos service created")
 	return &KhronosService{
 		Config: cfg,
 		Client: client,
+		Cron:   cron,
 	}
 }
 

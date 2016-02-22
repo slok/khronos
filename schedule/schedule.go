@@ -29,6 +29,7 @@ func DummyScheduler(exitStatus int, resultOut string, s Scheduler) Scheduler {
 	return SchedulerFunc(func(r *job.Result, j *job.Job) {
 		r.Out = resultOut
 		r.Status = exitStatus
+		logrus.Infof("Dummy HTTP request: %v", j.URL.String())
 		// s.Run(r, j)
 	})
 }
@@ -53,8 +54,8 @@ func HTTPScheduler(s Scheduler) Scheduler {
 // LogScheduler logs the execution of a job
 func LogScheduler(s Scheduler) Scheduler {
 	return SchedulerFunc(func(r *job.Result, j *job.Job) {
-		logrus.Infof("Start executing job '%d'", j.ID)
+		logrus.Infof("Start running cron '%d' at %v", j.ID, time.Now().UTC())
 		s.Run(r, j)
-		logrus.Infof("Finished executing job '%d'", j.ID)
+		logrus.Infof("Start running cron '%d' at %v", j.ID, time.Now().UTC())
 	})
 }

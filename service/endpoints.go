@@ -75,6 +75,9 @@ func (s *KhronosService) CreateNewJob(r *http.Request) (int, interface{}, error)
 		return http.StatusInternalServerError, errorCreatingJobMsg, nil
 
 	}
-	// TODO: Register and start a new cron job
+
+	// Register a new cron job!
+	s.Cron.RegisterCronJob(j)
+
 	return http.StatusCreated, j, nil
 }
