@@ -13,11 +13,9 @@ import (
 	"github.com/slok/khronos/storage"
 )
 
-const khronosConfigFile = "KHRONOS_CONFIG_FILE"
-
 func main() {
 	// Get config location file
-	configFile := os.Getenv(khronosConfigFile)
+	configFile := os.Getenv(config.KhronosConfigFileKey)
 
 	// Load config
 	cfg := config.NewAppConfig(configFile)

@@ -15,18 +15,18 @@ const prefix = "/api/v1"
 
 // KhronosService is the application served
 type KhronosService struct {
-	Config *config.AppConfig
-	Client storage.Client
-	Cron   *schedule.Cron
+	Config  *config.AppConfig
+	Storage storage.Client
+	Cron    *schedule.Cron
 }
 
 //NewKhronosService creates a service object ready to be served.
-func NewKhronosService(cfg *config.AppConfig, client storage.Client, cron *schedule.Cron) *KhronosService {
+func NewKhronosService(cfg *config.AppConfig, storage storage.Client, cron *schedule.Cron) *KhronosService {
 	logrus.Debug("New Khronos service created")
 	return &KhronosService{
-		Config: cfg,
-		Client: client,
-		Cron:   cron,
+		Config:  cfg,
+		Storage: storage,
+		Cron:    cron,
 	}
 }
 

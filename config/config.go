@@ -2,6 +2,9 @@ package config
 
 import "github.com/NYTimes/gizmo/config"
 
+// KhronosConfigFileKey is the env var key that will tell wich config file to take
+const KhronosConfigFileKey = "KHRONOS_CONFIG_FILE"
+
 // AppConfig holds the configuration of the application
 type AppConfig struct {
 	// Server configuration
@@ -39,7 +42,7 @@ func (a *AppConfig) loadConfigFromFile() {
 func (a *AppConfig) loadConfigFromEnv() {
 	config.LoadEnvConfig(a)
 	config.LoadEnvConfig(a.Server)
-	config.LoadEnvConfig(a.BoltDB)
+	//config.LoadEnvConfig(a.BoltDB)
 }
 
 // ConfigureApp loads all the application settings with a priority: First loads
@@ -54,5 +57,5 @@ func (a *AppConfig) ConfigureApp() {
 	a.loadConfigFromEnv()
 
 	// load khronos configuration
-	a.Khronos.LoadKhronosConfig(a)
+	a.LoadKhronosConfig(a)
 }

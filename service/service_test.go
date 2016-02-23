@@ -7,21 +7,25 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"testing"
 
 	"github.com/NYTimes/gizmo/server"
 
 	"github.com/slok/khronos/config"
 	"github.com/slok/khronos/job"
+	"github.com/slok/khronos/schedule"
 	"github.com/slok/khronos/storage"
 )
 
 var (
-	testConfig = &config.AppConfig{}
+	testConfig = config.NewAppConfig(os.Getenv(config.KhronosConfigFileKey))
 )
 
 func TestPing(t *testing.T) {
 	testStorageClient := storage.NewDummy()
+	testCronEngine := schedule.NewDummyCron(testConfig, 0, "OK")
+	testCronEngine.Start()
 
 	// Testing data
 	tests := []struct {
@@ -44,8 +48,9 @@ func TestPing(t *testing.T) {
 
 		// Register our service on the server (we don't need configuration for this service)
 		testServer.Register(&KhronosService{
-			Config: testConfig,
-			Client: testStorageClient,
+			Config:  testConfig,
+			Storage: testStorageClient,
+			Cron:    testCronEngine,
 		})
 
 		// Create request and a test recorder
@@ -66,6 +71,8 @@ func TestPing(t *testing.T) {
 
 func TestGetAllJobs(t *testing.T) {
 	testStorageClient := storage.NewDummy()
+	testCronEngine := schedule.NewDummyCron(testConfig, 0, "OK")
+	testCronEngine.Start()
 
 	// Testing data
 	tests := []struct {
@@ -102,8 +109,9 @@ func TestGetAllJobs(t *testing.T) {
 
 		// Register our service on the server (we don't need configuration for this service)
 		testServer.Register(&KhronosService{
-			Config: testConfig,
-			Client: testStorageClient,
+			Config:  testConfig,
+			Storage: testStorageClient,
+			Cron:    testCronEngine,
 		})
 
 		// Create request and a test recorder
@@ -128,6 +136,8 @@ func TestGetAllJobs(t *testing.T) {
 
 func TestCreateNewJob(t *testing.T) {
 	testStorageClient := storage.NewDummy()
+	testCronEngine := schedule.NewDummyCron(testConfig, 0, "OK")
+	testCronEngine.Start()
 
 	// Testing data
 	tests := []struct {
@@ -165,8 +175,9 @@ func TestCreateNewJob(t *testing.T) {
 
 		// Register our service on the server (we don't need configuration for this service)
 		testServer.Register(&KhronosService{
-			Config: testConfig,
-			Client: testStorageClient,
+			Config:  testConfig,
+			Storage: testStorageClient,
+			Cron:    testCronEngine,
 		})
 
 		b := bytes.NewReader([]byte(test.givenBody))
