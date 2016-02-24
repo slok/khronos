@@ -59,3 +59,48 @@ func TestRegisterCronJob(t *testing.T) {
 		}
 	}
 }
+
+func TestStarCronEngine(t *testing.T) {
+	cfg := config.NewAppConfig(os.Getenv(config.KhronosConfigFileKey))
+	dCron := NewDummyCron(cfg, 0, "")
+
+	// First time should start ok
+	if err := dCron.Start(nil); err != nil {
+		t.Errorf("Starting the first time should not get an error: %v", err)
+	}
+
+	// Second time should fail
+	if err := dCron.Start(nil); err == nil {
+		t.Errorf("Starting the second time should get an error")
+	}
+
+	// Stop and start again perfectly
+	dCron.Stop()
+	if err := dCron.Start(nil); err != nil {
+		t.Errorf("Starting after stopping should not get an error: %v", err)
+	}
+
+}
+
+func TestStopCronEngine(t *testing.T) {
+	cfg := config.NewAppConfig(os.Getenv(config.KhronosConfigFileKey))
+	dCron := NewDummyCron(cfg, 0, "")
+
+	// Stopping without starting should fail
+	if err := dCron.Stop(); err == nil {
+		t.Errorf("Stopping without starting should get an error")
+	}
+
+	// Stopping after starting should go ok
+	dCron.Start(nil)
+	if err := dCron.Stop(); err != nil {
+		t.Errorf("Stopping after starting should not get an error %v", err)
+	}
+
+	// Stopping after stopping should fail
+	dCron.Stop()
+	if err := dCron.Stop(); err == nil {
+		t.Errorf("Stopping after stopping should get an error")
+	}
+
+}
