@@ -1,6 +1,7 @@
 package schedule
 
 import (
+	"errors"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -24,6 +25,9 @@ type Cron struct {
 	// be in the chain of the scheduler (see `scheduler/run`)
 	Results chan *job.Result
 
+	// started flag is up if any other cron is up
+	started bool
+
 	// application context
 	cfg *config.AppConfig
 }
@@ -34,6 +38,7 @@ func NewSimpleCron(cfg *config.AppConfig) *Cron {
 		runner:    cron.New(),
 		scheduler: SimpleRun(),
 		Results:   make(chan *job.Result, cfg.ResultBufferLen),
+		started:   false,
 		cfg:       cfg,
 	}
 }
@@ -45,23 +50,63 @@ func NewDummyCron(cfg *config.AppConfig, exitStatus int, out string) *Cron {
 		runner:    cron.New(),
 		scheduler: DummyRun(exitStatus, out),
 		Results:   make(chan *job.Result, cfg.ResultBufferLen),
+		started:   false,
 		cfg:       cfg,
 	}
 }
 
-// StartResultProcesser starts the processor for the results (it blocks, needs a goroutine)
-func (c *Cron) StartResultProcesser() {
-	logrus.Info("Result processing started...")
-	for r := range c.Results {
-		logrus.Debugf("received result from job '%d' with:\nstatus:%d;\nOutput:%s", r.Job.ID, r.Status, r.Out)
-		// TODO: apply result processing logic
+// startResultProcesser starts the processor for the results (runs in a goroutine)
+func (c *Cron) startResultProcesser(f func(*job.Result)) error {
+	if c.started {
+		return errors.New("Already running")
 	}
+
+	// Apply default logic for default processing
+	if f == nil {
+		f = func(r *job.Result) {
+			logrus.Debugf("received result from job '%d' with:\nstatus:%d;\nOutput:%s", r.Job.ID, r.Status, r.Out)
+			// TODO: apply result processing logic
+		}
+	}
+
+	logrus.Info("Result processing started...")
+	// Start job runner in a gouroutine. This anom func will execute the received
+	// func for each result
+	go func() {
+		for r := range c.Results {
+			f(r)
+		}
+	}()
+	return nil
 }
 
-// Start starts cron job scheduler adn the result listener
-func (c *Cron) Start() {
+// Start starts cron job scheduler and the result listener. f parameter is the function
+// that will be executed for each result, could be nil.
+func (c *Cron) Start(f func(*job.Result)) error {
+	if c.started {
+		return errors.New("Already running")
+	}
+
+	// Start the cron runner
 	c.runner.Start()
-	go c.StartResultProcesser()
+
+	// Start the result processor
+	if err := c.startResultProcesser(f); err != nil {
+		return err
+	}
+	c.started = true
+	return nil
+}
+
+// Stop stops cron job scheduler and result listener
+func (c *Cron) Stop() error {
+	if !c.started {
+		return errors.New("Not running")
+	}
+	c.runner.Stop()
+	close(c.Results)
+	c.started = false
+	return nil
 }
 
 // RegisterCronJob registers a cron to be run when its it's time

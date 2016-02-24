@@ -26,7 +26,8 @@ func main() {
 
 	// Create scheduler and start
 	cr := schedule.NewDummyCron(cfg, 0, "OK")
-	cr.Start()
+	cr.Start(nil)
+	defer cr.Stop()
 
 	// Load service
 	khronosService := service.NewKhronosService(cfg, stCli, cr)

@@ -56,6 +56,6 @@ func LogScheduler(s Scheduler) Scheduler {
 	return SchedulerFunc(func(r *job.Result, j *job.Job) {
 		logrus.Infof("Start running cron '%d' at %v", j.ID, time.Now().UTC())
 		s.Run(r, j)
-		logrus.Infof("Start running cron '%d' at %v", j.ID, time.Now().UTC())
+		logrus.Infof("Stop running cron '%d' at %v", j.ID, time.Now().UTC())
 	})
 }
