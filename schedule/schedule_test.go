@@ -1,6 +1,7 @@
 package schedule
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/slok/khronos/job"
@@ -18,7 +19,8 @@ func TestDummyScheduler(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		j := &job.Job{}
+		u, _ := url.Parse("http://test.org/test")
+		j := &job.Job{URL: u}
 		r := &job.Result{}
 
 		DummyScheduler(test.givenExitStatus, test.givenOut,
