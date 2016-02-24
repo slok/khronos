@@ -25,7 +25,7 @@ var (
 func TestPing(t *testing.T) {
 	testStorageClient := storage.NewDummy()
 	testCronEngine := schedule.NewDummyCron(testConfig, 0, "OK")
-	testCronEngine.Start()
+	testCronEngine.Start(nil)
 
 	// Testing data
 	tests := []struct {
@@ -72,7 +72,7 @@ func TestPing(t *testing.T) {
 func TestGetAllJobs(t *testing.T) {
 	testStorageClient := storage.NewDummy()
 	testCronEngine := schedule.NewDummyCron(testConfig, 0, "OK")
-	testCronEngine.Start()
+	testCronEngine.Start(nil)
 
 	// Testing data
 	tests := []struct {
@@ -137,7 +137,7 @@ func TestGetAllJobs(t *testing.T) {
 func TestCreateNewJob(t *testing.T) {
 	testStorageClient := storage.NewDummy()
 	testCronEngine := schedule.NewDummyCron(testConfig, 0, "OK")
-	testCronEngine.Start()
+	testCronEngine.Start(nil)
 
 	// Testing data
 	tests := []struct {
