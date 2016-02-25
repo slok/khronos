@@ -1,13 +1,19 @@
 package schedule
 
-import "github.com/slok/khronos/job"
+import (
+	"time"
+
+	"github.com/slok/khronos/job"
+)
+
+const timeout = 2 * time.Second
 
 // SimpleRun has the simples execution flow of a job, log, time, and http
 func SimpleRun() Scheduler {
 	final := SchedulerFunc(func(r *job.Result, j *job.Job) {})
 	s := LogScheduler(
 		TimingScheduler(
-			HTTPScheduler(final)))
+			HTTPScheduler(timeout, final))) // TODO: Custom timeout per job
 	return s
 }
 

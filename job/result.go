@@ -7,6 +7,8 @@ const (
 	ResultOK = iota
 	// ResultError means that the result end in error
 	ResultError
+	// ResultInternalError means that the job execution had an internal error
+	ResultInternalError
 	// ResultUnknow means that the result was not clear how it ended
 	ResultUnknow
 )
