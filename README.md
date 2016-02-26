@@ -1,5 +1,4 @@
-Khronos
-[![Build Status](https://travis-ci.org/slok/khronos.svg?branch=master)](https://travis-ci.org/slok/khronos)[![Go Report Card](https://goreportcard.com/badge/github.com/slok/khronos)](https://goreportcard.com/report/github.com/slok/khronos)
+Khronos  [![Build Status](https://travis-ci.org/slok/khronos.svg?branch=master)](https://travis-ci.org/slok/khronos)  [![Go Report Card](https://goreportcard.com/badge/github.com/slok/khronos)](https://goreportcard.com/report/github.com/slok/khronos)
 =======
 
 Khronos is a modern replacement of cron for microservice architecture.
