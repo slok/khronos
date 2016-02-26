@@ -26,10 +26,12 @@ named "job:ID:results" that will have the results identified with an incremental
 package storage
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/boltdb/bolt"
 
 	"github.com/slok/khronos/job"
@@ -100,7 +102,34 @@ func (c *BoltDB) GetJob(id int) (*job.Job, error) {
 
 // SaveJob stores an HTTP job on boltdb
 func (c *BoltDB) SaveJob(j *job.Job) error {
-	return errors.New("Not implemented")
+	err := c.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(jobsBucket))
+
+		// Create a new ID for the new job, not new ID if it has already (update)
+		// Starts in 1, so its safe to check with 0
+		if j.ID == 0 {
+			id, _ := b.NextSequence()
+			j.ID = int(id)
+		}
+
+		// Marshal to json our job
+		buf, err := json.Marshal(j)
+		if err != nil {
+			return err
+		}
+
+		// save as always (insert or update doesn't matter)
+		key := fmt.Sprintf(jobKey, j.ID)
+		return b.Put([]byte(key), buf)
+	})
+
+	if err != nil {
+		err = fmt.Errorf("error storing job '%d': %v", j.ID, err)
+		logrus.Error(err.Error())
+		return err
+	}
+
+	return nil
 }
 
 // DeleteJob deletes an HTTP job from boltdb
