@@ -30,6 +30,11 @@ func NewDummy() *Dummy {
 	}
 }
 
+// Close doens't do nothing on dummy client
+func (c *Dummy) Close() error {
+	return nil
+}
+
 // GetJobs returns all the http jobs stored on memory
 func (c *Dummy) GetJobs() (jobs []*job.Job, err error) {
 	c.jobsMutex.Lock()
