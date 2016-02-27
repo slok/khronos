@@ -108,11 +108,16 @@ func (c *BoltDB) Close() error {
 
 // GetJobs returns all the HTTP jobs from boltdb. Use low and high params as slice operator
 func (c *BoltDB) GetJobs(low, high int) ([]*job.Job, error) {
+	jobs := []*job.Job{}
+
 	// In database id start from one, not 0, so we convert to help in the logic
 	low++
 	high++
 
-	jobs := []*job.Job{}
+	// if low and high the same then return empty slice
+	if low == high {
+		return jobs, nil
+	}
 
 	// Check indexes ok
 	if high != 1 && low >= high {

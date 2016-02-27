@@ -56,29 +56,29 @@ func TestHTTPScheduler(t *testing.T) {
 		givenBody  string
 		givenCode  int
 		wantStatus int
-		timeout    time.Duration
+		timeout    bool
 	}{
 		{
 			givenBody:  "Job finished without errors",
 			givenCode:  http.StatusOK,
 			wantStatus: job.ResultOK,
-			timeout:    2 * time.Second,
+			timeout:    false,
 		},
 		{
 			givenBody:  "Job finished with errors",
 			givenCode:  http.StatusInternalServerError,
 			wantStatus: job.ResultError,
-			timeout:    2 * time.Second,
+			timeout:    false,
 		},
 		{
 			givenBody:  "dunno what do you want...",
 			givenCode:  http.StatusBadRequest,
 			wantStatus: job.ResultUnknow,
-			timeout:    2 * time.Second,
+			timeout:    false,
 		},
 		{
 			wantStatus: job.ResultInternalError,
-			timeout:    0,
+			timeout:    true,
 		},
 	}
 
@@ -87,6 +87,9 @@ func TestHTTPScheduler(t *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(test.givenCode)
 			fmt.Fprint(w, test.givenBody)
+			if test.timeout {
+				time.Sleep(100 * time.Nanosecond)
+			}
 		}))
 		defer ts.Close()
 
@@ -97,8 +100,14 @@ func TestHTTPScheduler(t *testing.T) {
 		}
 		r := &job.Result{}
 
+		var timeout time.Duration
 		// Use the scheduler
-		HTTPScheduler(test.timeout, SchedulerFunc(func(r *job.Result, j *job.Job) {})).Run(r, j)
+		if test.timeout {
+			timeout = 1 * time.Nanosecond
+		} else {
+			timeout = 2 * time.Second
+		}
+		HTTPScheduler(timeout, SchedulerFunc(func(r *job.Result, j *job.Job) {})).Run(r, j)
 
 		// Check result is ok
 		// Only check the body of calls that where returned ok

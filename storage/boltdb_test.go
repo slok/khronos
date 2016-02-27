@@ -176,6 +176,12 @@ func TestBoltDBGetJobs(t *testing.T) {
 			wantError:  false,
 		},
 		{
+			givenLow:   totalJobs - 20,
+			givenHigh:  totalJobs - 20,
+			wantLength: 0,
+			wantError:  false,
+		},
+		{
 			givenLow:  totalJobs - 30,
 			givenHigh: 1,
 			wantError: true,

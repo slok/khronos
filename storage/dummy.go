@@ -49,7 +49,7 @@ func (c *Dummy) GetJobs(low, high int) (jobs []*job.Job, err error) {
 	}
 
 	// Check indexes ok
-	if low >= high || low+1 > len(c.Jobs) || high > len(c.Jobs) {
+	if low > high || low > len(c.Jobs) || high > len(c.Jobs) {
 		return nil, errors.New("wrong parameters")
 	}
 
