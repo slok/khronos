@@ -78,7 +78,7 @@ func TestHTTPScheduler(t *testing.T) {
 		},
 		{
 			wantStatus: job.ResultInternalError,
-			timeout:    3,
+			timeout:    0,
 		},
 	}
 
