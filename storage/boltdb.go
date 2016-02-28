@@ -52,17 +52,15 @@ type BoltDB struct {
 	DB       *bolt.DB
 }
 
-// jobKey returns an 8-byte big endian representation of int id.
+// idToByte returns an 8-byte big endian representation of int id.
 // this is used to preserve the int decimal order in a byte sequence, the one
-// that is used by boltdb. This representation is internal, the users of this
-// client will not know anything.
+// that is used by boltdb. This representation is internal.
 // examples:
 // key=000000000000001f, ID=31
 // key=0000000000000020, ID=32
 // key=0000000000000021, ID=33
 // key=0000000000000022, ID=34
-
-func jobKey(id int) []byte {
+func idToByte(id int) []byte {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, uint64(id))
 	return b
@@ -125,7 +123,7 @@ func (c *BoltDB) GetJobs(low, high int) ([]*job.Job, error) {
 	}
 
 	// Get all asked jobs
-	c.DB.View(func(tx *bolt.Tx) error {
+	err := c.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(jobsBucket))
 		c := b.Cursor()
 
@@ -134,13 +132,13 @@ func (c *BoltDB) GetJobs(low, high int) ([]*job.Job, error) {
 			lastKey = nil
 
 		} else {
-			lastKey = jobKey(high)
+			lastKey = idToByte(high)
 		}
 
-		firstKey := jobKey(low)
+		firstKey := idToByte(low)
 
-		// Until we reach the number asked for (we compare that the returned key is not the last one)
-		for k, v := c.Seek([]byte(firstKey)); string(k) != string(lastKey); k, v = c.Next() {
+		// Until we reach the number asked for (we compare that the returned key is not the last one or is nil, that means the end)
+		for k, v := c.Seek([]byte(firstKey)); k != nil && string(k) != string(lastKey); k, v = c.Next() {
 			j := &job.Job{}
 			if err := json.Unmarshal(v, j); err != nil {
 				return err
@@ -149,6 +147,11 @@ func (c *BoltDB) GetJobs(low, high int) ([]*job.Job, error) {
 		}
 		return nil
 	})
+
+	if err != nil {
+		logrus.Errorf("error retrieving jobs form boltdb: %v", err)
+		return nil, err
+	}
 
 	// return error if not retrieved all asked for (if high is 0 means: want all from low,
 	// doesn't matter how many, so in this case no errors)
@@ -162,7 +165,30 @@ func (c *BoltDB) GetJobs(low, high int) ([]*job.Job, error) {
 
 // GetJob returns an specific HTTP job based on the ID
 func (c *BoltDB) GetJob(id int) (*job.Job, error) {
-	return nil, errors.New("Not implemented")
+	j := &job.Job{}
+	err := c.DB.View(func(tx *bolt.Tx) error {
+		// Get job from job bucket
+		b := tx.Bucket([]byte(jobsBucket))
+		jb := b.Get(idToByte(id))
+
+		// Check if job is present
+		if jb == nil {
+			return errors.New("job does not exists")
+		}
+
+		// if present then decode from json
+		if err := json.Unmarshal(jb, j); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		logrus.Errorf("error retrieving job '%d' form boltdb: %v", id, err)
+		return nil, err
+	}
+
+	return j, nil
 }
 
 // SaveJob stores an HTTP job on boltdb
@@ -184,7 +210,7 @@ func (c *BoltDB) SaveJob(j *job.Job) error {
 		}
 
 		// save as always (insert or update doesn't matter)
-		key := jobKey(j.ID)
+		key := idToByte(j.ID)
 		return b.Put(key, buf)
 	})
 

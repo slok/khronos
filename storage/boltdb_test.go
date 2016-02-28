@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -100,7 +101,7 @@ func TestBoltDBSaveJob(t *testing.T) {
 		// Retrieve job
 		err = c.DB.View(func(tx *bolt.Tx) error {
 			b := tx.Bucket([]byte(jobsBucket))
-			key := jobKey(j.ID)
+			key := idToByte(j.ID)
 			if err := json.Unmarshal(b.Get(key), gotJob); err != nil {
 				return err
 			}
@@ -237,6 +238,72 @@ func TestBoltDBGetJobs(t *testing.T) {
 			}
 		}
 
+	}
+
+	// Close ok
+	if err := tearDownBoltDB(c.DB); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestBoltDBGetJob(t *testing.T) {
+	boltPath := randomPath()
+	totalJobs := 50
+
+	// Create a new boltdb connection
+	c, err := NewBoltDB(boltPath, 2*time.Second)
+	if err != nil {
+		t.Errorf("Error creating bolt connection: %v", err)
+	}
+
+	// Create a buch of jobs
+	for i := 1; i <= totalJobs; i++ {
+		u, _ := url.Parse(fmt.Sprintf("http://khronos.io/job%d", i))
+		j := &job.Job{
+			Name:        fmt.Sprintf("job%d", i),
+			Description: fmt.Sprintf("job %d", i),
+			When:        fmt.Sprintf("@every %dm", i),
+			Active:      true,
+			URL:         u,
+		}
+		err := c.SaveJob(j)
+		if err != nil {
+			t.Error("Error saving job on database")
+		}
+	}
+
+	// Check all the stored jobs retrieving one by one
+	for id := 1; id <= totalJobs; id++ {
+		gotJob, err := c.GetJob(id)
+
+		if err != nil {
+			t.Errorf("Job should be retrieved, it didn't: %v", err)
+		}
+
+		u, _ := url.Parse(fmt.Sprintf("http://khronos.io/job%d", id))
+		j := &job.Job{
+			ID:          id,
+			Name:        fmt.Sprintf("job%d", id),
+			Description: fmt.Sprintf("job %d", id),
+			When:        fmt.Sprintf("@every %dm", id),
+			Active:      true,
+			URL:         u,
+		}
+
+		if !reflect.DeepEqual(*j, *gotJob) {
+			t.Errorf("Jobs should be equal, it didn't; expected: %#v;\ngot: %#v", *j, *gotJob)
+		}
+
+	}
+
+	// Check not existent job
+	_, err = c.GetJob(totalJobs + 1)
+	if err == nil {
+		t.Error("Expected error but didn't got")
+	}
+
+	if !strings.Contains(err.Error(), "job does not exists") {
+		t.Errorf("Expected error but not this, got: %v", err)
 	}
 
 	// Close ok
