@@ -356,6 +356,10 @@ func TestBoltDBDeleteJob(t *testing.T) {
 		if _, err := c.GetJob(j.ID); err == nil {
 			t.Errorf("Job shouldn't exists, should got error, didn't")
 		}
+	}
 
+	// Close ok
+	if err := tearDownBoltDB(c.DB); err != nil {
+		t.Error(err)
 	}
 }
