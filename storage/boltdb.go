@@ -224,7 +224,18 @@ func (c *BoltDB) SaveJob(j *job.Job) error {
 	return nil
 }
 
-// DeleteJob deletes an HTTP job from boltdb
+// DeleteJob deletes an HTTP job from boltdb, doesn't return error if job doesn't exists
 func (c *BoltDB) DeleteJob(j *job.Job) error {
-	return errors.New("Not implemented")
+	err := c.DB.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket([]byte(jobsBucket)).Delete(idToByte(j.ID))
+	})
+
+	if err != nil {
+		err = fmt.Errorf("error deleting job '%d': %v", j.ID, err)
+		logrus.Error(err.Error())
+		return err
+	}
+
+	logrus.Debugf("Job '%d' deleted boltdb", j.ID)
+	return nil
 }
