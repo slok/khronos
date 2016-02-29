@@ -25,7 +25,7 @@ func (s *KhronosService) Ping(r *http.Request) (int, interface{}, error) {
 func (s *KhronosService) GetAllJobs(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Calling GetAllJobs endpoint")
 
-	jobs, err := s.Storage.GetJobs()
+	jobs, err := s.Storage.GetJobs(0, 0)
 
 	if err != nil {
 		logrus.Errorf("Error retrieving all jobs: %v", err)

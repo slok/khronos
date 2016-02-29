@@ -30,16 +30,31 @@ func NewDummy() *Dummy {
 	}
 }
 
+// Close doens't do nothing on dummy client
+func (c *Dummy) Close() error {
+	return nil
+}
+
 // GetJobs returns all the http jobs stored on memory
-func (c *Dummy) GetJobs() (jobs []*job.Job, err error) {
+func (c *Dummy) GetJobs(low, high int) (jobs []*job.Job, err error) {
 	c.jobsMutex.Lock()
 	defer c.jobsMutex.Unlock()
 	if c.Jobs == nil {
 		return nil, errors.New("Error retrieving jobs")
 	}
 
-	for _, v := range c.Jobs {
-		jobs = append(jobs, v)
+	// High on top means all
+	if high == 0 {
+		high = len(c.Jobs)
+	}
+
+	// Check indexes ok
+	if low > high || low > len(c.Jobs) || high > len(c.Jobs) {
+		return nil, errors.New("wrong parameters")
+	}
+
+	for i := low; i < high; i++ {
+		jobs = append(jobs, c.Jobs[fmt.Sprintf(jobKeyFmt, i)])
 	}
 	return jobs, nil
 }
