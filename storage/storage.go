@@ -24,4 +24,21 @@ type Client interface {
 
 	// DeleteJob deletes a job
 	DeleteJob(j *job.Job) error
+
+	// Result actions
+	// GetResults returns an slice of results from a job; jobID parameter is the
+	// id of the job from the results will be obtained. The low parmeter will be the
+	// first result and the high will be the next one to the last result that will be
+	// returned; this acts like an slice operator. 0 on high parameter means all.
+	// this would be translated as results[low:] and 0 on low would be results[:high]
+	GetResults(jobID, low, high int) ([]*job.Result, error)
+
+	// GetResult returns a result based on the id
+	GetResult(id int) (*job.Result, error)
+
+	// SaveResult stores the result.  Results cannot be updated
+	SaveResult(r *job.Result) error
+
+	// DeleteResult deletes a result
+	DeleteResult(r *job.Result) error
 }
