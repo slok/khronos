@@ -39,6 +39,12 @@ func TestBoltDBConnection(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating bolt connection: %v", err)
 	}
+	// Close ok
+	defer func() {
+		if err := tearDownBoltDB(c.DB); err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// Check root buckets are present
 	checkBuckets := []string{jobsBucket, resultsBucket}
@@ -55,10 +61,6 @@ func TestBoltDBConnection(t *testing.T) {
 		t.Error(err)
 	}
 
-	// Close ok
-	if err := tearDownBoltDB(c.DB); err != nil {
-		t.Error(err)
-	}
 }
 
 func TestBoltDBSaveJob(t *testing.T) {
@@ -134,6 +136,12 @@ func TestBoltDBGetJobs(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating bolt connection: %v", err)
 	}
+	// Close ok
+	defer func() {
+		if err := tearDownBoltDB(c.DB); err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// Create a buch of jobs
 	for i := 1; i <= totalJobs; i++ {
@@ -239,11 +247,6 @@ func TestBoltDBGetJobs(t *testing.T) {
 		}
 
 	}
-
-	// Close ok
-	if err := tearDownBoltDB(c.DB); err != nil {
-		t.Error(err)
-	}
 }
 
 func TestBoltDBGetJob(t *testing.T) {
@@ -255,6 +258,12 @@ func TestBoltDBGetJob(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating bolt connection: %v", err)
 	}
+	// Close ok
+	defer func() {
+		if err := tearDownBoltDB(c.DB); err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// Create a buch of jobs
 	for i := 1; i <= totalJobs; i++ {
@@ -305,11 +314,6 @@ func TestBoltDBGetJob(t *testing.T) {
 	if !strings.Contains(err.Error(), "job does not exists") {
 		t.Errorf("Expected error but not this, got: %v", err)
 	}
-
-	// Close ok
-	if err := tearDownBoltDB(c.DB); err != nil {
-		t.Error(err)
-	}
 }
 
 func TestBoltDBDeleteJob(t *testing.T) {
@@ -322,6 +326,12 @@ func TestBoltDBDeleteJob(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating bolt connection: %v", err)
 	}
+	// Close ok
+	defer func() {
+		if err := tearDownBoltDB(c.DB); err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// Create a buch of jobs
 	for i := 1; i <= totalJobs; i++ {
@@ -356,10 +366,5 @@ func TestBoltDBDeleteJob(t *testing.T) {
 		if _, err := c.GetJob(j.ID); err == nil {
 			t.Errorf("Job shouldn't exists, should got error, didn't")
 		}
-	}
-
-	// Close ok
-	if err := tearDownBoltDB(c.DB); err != nil {
-		t.Error(err)
 	}
 }
