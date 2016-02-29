@@ -69,7 +69,7 @@ func TestPing(t *testing.T) {
 
 }
 
-func TestGetAllJobs(t *testing.T) {
+func TestGetJobs(t *testing.T) {
 	testStorageClient := storage.NewDummy()
 	testCronEngine := schedule.NewDummyCron(testConfig, 0, "OK")
 	testCronEngine.Start(nil)

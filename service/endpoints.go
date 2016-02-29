@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 
 	"github.com/slok/khronos/service/validate"
 )
@@ -21,8 +22,8 @@ func (s *KhronosService) Ping(r *http.Request) (int, interface{}, error) {
 	return http.StatusOK, "pong", nil
 }
 
-//GetAllJobs returns a list of jobs
-func (s *KhronosService) GetAllJobs(r *http.Request) (int, interface{}, error) {
+//GetJobs returns a list of jobs
+func (s *KhronosService) GetJobs(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Calling GetAllJobs endpoint")
 
 	jobs, err := s.Storage.GetJobs(0, 0)
@@ -80,4 +81,31 @@ func (s *KhronosService) CreateNewJob(r *http.Request) (int, interface{}, error)
 	s.Cron.RegisterCronJob(j)
 
 	return http.StatusCreated, j, nil
+}
+
+// GetJob returns a single job by id
+func (s *KhronosService) GetJob(r *http.Request) (int, interface{}, error) {
+	// Get resul ID
+	jobID, _ := mux.Vars(r)["id"]
+	logrus.Debug("Calling GetJob with id: %s", jobID)
+
+	return http.StatusNotImplemented, nil, nil
+}
+
+// GetResults returns the jobs from an specific job
+func (s *KhronosService) GetResults(r *http.Request) (int, interface{}, error) {
+	// Get job ID
+	jobID := r.URL.Query().Get("job")
+	logrus.Debug("Calling GetResults from jobid: %s", jobID)
+
+	return http.StatusNotImplemented, nil, nil
+}
+
+// GetResult returns a single result by id
+func (s *KhronosService) GetResult(r *http.Request) (int, interface{}, error) {
+	// Get resul ID
+	resultID, _ := mux.Vars(r)["id"]
+	logrus.Debug("Calling GetResult with id: %s", resultID)
+
+	return http.StatusNotImplemented, nil, nil
 }
