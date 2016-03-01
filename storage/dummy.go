@@ -187,7 +187,7 @@ func (c *Dummy) SaveResult(r *job.Result) error {
 		results = map[string]*job.Result{}
 		c.Results[resultsKey] = results
 	}
-	results[fmt.Sprintf(jobResultsKeyFmt, r.ID)] = r
+	results[fmt.Sprintf(resultKeyFmt, r.ID)] = r
 
 	return nil
 }
@@ -202,7 +202,7 @@ func (c *Dummy) DeleteResult(r *job.Result) error {
 		return errors.New("Wrong job")
 	}
 
-	delete(results, fmt.Sprintf(jobResultsKeyFmt, r.ID))
+	delete(results, fmt.Sprintf(resultKeyFmt, r.ID))
 
 	// Don't return error if the result doens't exists
 	return nil
