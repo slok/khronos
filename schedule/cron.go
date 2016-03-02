@@ -72,7 +72,7 @@ func (c *Cron) startResultProcesser(f func(*job.Result)) error {
 		f = func(r *job.Result) {
 			logrus.Debugf("received result from job '%d' with:\nstatus:%d;\nOutput:%s", r.Job.ID, r.Status, r.Out)
 
-			// Save rersult
+			// Save result
 			err := c.storage.SaveResult(r)
 			if err != nil {
 				logrus.Errorf("error saving result '%d' from job '%d'", r.ID, r.Job.ID)
