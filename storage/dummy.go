@@ -63,6 +63,9 @@ func (c *Dummy) GetJobs(low, high int) (jobs []*job.Job, err error) {
 		return nil, errors.New("wrong parameters")
 	}
 
+	// Add 1 to match the indexes
+	low++
+	high++
 	for i := low; i < high; i++ {
 		jobs = append(jobs, c.Jobs[fmt.Sprintf(jobKeyFmt, i)])
 	}
@@ -149,6 +152,9 @@ func (c *Dummy) GetResults(j *job.Job, low, high int) ([]*job.Result, error) {
 		return nil, errors.New("wrong parameters")
 	}
 
+	// Add 1 to match the indexes
+	low++
+	high++
 	res := []*job.Result{}
 	for i := low; i < high; i++ {
 		res = append(res, results[fmt.Sprintf(resultKeyFmt, i)])
