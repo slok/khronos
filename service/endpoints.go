@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -12,8 +13,11 @@ import (
 )
 
 const (
-	errorRetrievingAllJobsMsg = "Error retrieving all jobs"
-	errorCreatingJobMsg       = "Error creating job"
+	errorRetrievingAllJobsMsg    = "Error retrieving all jobs"
+	errorCreatingJobMsg          = "Error creating job"
+	errorRetrievingJobMsg        = "Error retrieving job"
+	errorRetrievingJobResultsMsg = "Error cretrieving job results"
+	wrongParamsMsg               = "Wrong params"
 )
 
 //Ping informs service is alive
@@ -95,17 +99,28 @@ func (s *KhronosService) GetJob(r *http.Request) (int, interface{}, error) {
 // GetResults returns the jobs from an specific job
 func (s *KhronosService) GetResults(r *http.Request) (int, interface{}, error) {
 	// Get job ID
-	jobID := r.URL.Query().Get("job")
-	logrus.Debug("Calling GetResults from jobid: %s", jobID)
+	jid, _ := mux.Vars(r)["jobID"]
+	logrus.Debugf("Calling GetResults from jobid: %s", jid)
 
-	return http.StatusNotImplemented, nil, nil
-}
+	// Get the job
+	jobID, err := strconv.Atoi(jid)
 
-// GetResult returns a single result by id
-func (s *KhronosService) GetResult(r *http.Request) (int, interface{}, error) {
-	// Get resul ID
-	resultID, _ := mux.Vars(r)["id"]
-	logrus.Debug("Calling GetResult with id: %s", resultID)
+	if err != nil {
+		logrus.Errorf("error getting job ID: %v", err)
+		return http.StatusInternalServerError, wrongParamsMsg, nil
+	}
+	j, err := s.Storage.GetJob(jobID)
+	if err != nil {
+		logrus.Errorf("Error retrieving Job: %v", err)
+		return http.StatusInternalServerError, errorRetrievingJobMsg, nil
+	}
 
-	return http.StatusNotImplemented, nil, nil
+	// Get job results
+	results, err := s.Storage.GetResults(j, 0, 0)
+	if err != nil {
+		logrus.Errorf("Error retrieving job results: %v", err)
+		return http.StatusInternalServerError, errorRetrievingJobResultsMsg, nil
+	}
+
+	return http.StatusOK, results, nil
 }

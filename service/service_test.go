@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/NYTimes/gizmo/server"
 
@@ -24,7 +25,7 @@ var (
 
 func TestPing(t *testing.T) {
 	testStorageClient := storage.NewDummy()
-	testCronEngine := schedule.NewDummyCron(testConfig, 0, "OK")
+	testCronEngine := schedule.NewDummyCron(testConfig, testStorageClient, 0, "OK")
 	testCronEngine.Start(nil)
 
 	// Testing data
@@ -71,7 +72,7 @@ func TestPing(t *testing.T) {
 
 func TestGetJobs(t *testing.T) {
 	testStorageClient := storage.NewDummy()
-	testCronEngine := schedule.NewDummyCron(testConfig, 0, "OK")
+	testCronEngine := schedule.NewDummyCron(testConfig, testStorageClient, 0, "OK")
 	testCronEngine.Start(nil)
 
 	// Testing data
@@ -136,7 +137,7 @@ func TestGetJobs(t *testing.T) {
 
 func TestCreateNewJob(t *testing.T) {
 	testStorageClient := storage.NewDummy()
-	testCronEngine := schedule.NewDummyCron(testConfig, 0, "OK")
+	testCronEngine := schedule.NewDummyCron(testConfig, testStorageClient, 0, "OK")
 	testCronEngine.Start(nil)
 
 	// Testing data
@@ -190,6 +191,84 @@ func TestCreateNewJob(t *testing.T) {
 		}
 		if len(testStorageClient.Jobs) != test.wantJobslen {
 			t.Errorf("Expected len '%d'. Got '%d' instead ", len(testStorageClient.Jobs), test.wantJobslen)
+		}
+	}
+}
+
+func TestGetResults(t *testing.T) {
+	j := &job.Job{ID: 1, Name: "test1", Description: "test1", When: "@daily", Active: true, URL: &url.URL{}}
+	testStorageClient := storage.NewDummy()
+	testCronEngine := schedule.NewDummyCron(testConfig, testStorageClient, 0, "OK")
+	testCronEngine.Start(nil)
+
+	// Testing data
+	tests := []struct {
+		givenURI     string
+		givenResults map[string]map[string]*job.Result
+		givenJobs    map[string]*job.Job
+		wantCode     int
+	}{
+		{
+			givenURI:     "/api/v1/jobs/1/results",
+			givenResults: make(map[string]map[string]*job.Result),
+			givenJobs:    map[string]*job.Job{"job:1": j},
+			wantCode:     http.StatusInternalServerError,
+		},
+		{
+			givenURI: "/api/v1/jobs/1/results",
+			givenResults: map[string]map[string]*job.Result{
+				"job:1:results": map[string]*job.Result{
+					"result:1": &job.Result{ID: 1, Job: j, Out: "test1", Status: job.ResultOK, Start: time.Now().UTC(), Finish: time.Now().UTC()},
+					"result:2": &job.Result{ID: 2, Job: j, Out: "test1", Status: job.ResultError, Start: time.Now().UTC(), Finish: time.Now().UTC()},
+					"result:3": &job.Result{ID: 3, Job: j, Out: "test1", Status: job.ResultInternalError, Start: time.Now().UTC(), Finish: time.Now().UTC()},
+				},
+			},
+			givenJobs: map[string]*job.Job{"job:1": j},
+			wantCode:  http.StatusOK,
+		},
+	}
+
+	for _, test := range tests {
+		// Set our dummy 'database' on the storage client
+		testStorageClient.Results = test.givenResults
+		testStorageClient.Jobs = test.givenJobs
+
+		// Create a testing server
+		testServer := server.NewSimpleServer(nil)
+
+		// Register our service on the server (we don't need configuration for this service)
+		testServer.Register(&KhronosService{
+			Config:  testConfig,
+			Storage: testStorageClient,
+			Cron:    testCronEngine,
+		})
+
+		// Create request and a test recorder
+		r, _ := http.NewRequest("GET", test.givenURI, nil)
+		w := httptest.NewRecorder()
+		testServer.ServeHTTP(w, r)
+		if w.Code != test.wantCode {
+			t.Errorf("Expected response code '%d'. Got '%d' instead ", test.wantCode, w.Code)
+		}
+
+		// Only check in good results
+		if w.Code == http.StatusOK {
+			b, err := ioutil.ReadAll(w.Body)
+
+			if err != nil {
+				t.Errorf("Error reading result body: %v", err)
+			}
+			var gotRes []*job.Result
+			if err := json.Unmarshal(b, &gotRes); err != nil {
+				t.Errorf("Error unmarshaling: %v", err)
+			}
+			rs, ok := test.givenResults["job:1:results"]
+			if !ok {
+				t.Errorf("Error getting results: %v", err)
+			}
+			if len(gotRes) != len(rs) {
+				t.Errorf("Expected len '%d'. Got '%d' instead ", len(rs), len(gotRes))
+			}
 		}
 	}
 }
