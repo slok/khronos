@@ -68,5 +68,9 @@ func (s *KhronosService) JSONEndpoints() map[string]map[string]server.JSONEndpoi
 		"/jobs/{jobID}/results": map[string]server.JSONEndpoint{
 			"GET": s.GetResults,
 		},
+
+		"/jobs/{jobID}/results/{resultID}": map[string]server.JSONEndpoint{
+			"GET": s.GetResult,
+		},
 	}
 }

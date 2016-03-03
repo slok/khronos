@@ -124,3 +124,35 @@ func (s *KhronosService) GetResults(r *http.Request) (int, interface{}, error) {
 
 	return http.StatusOK, results, nil
 }
+
+// GetResult returns a single result by id
+func (s *KhronosService) GetResult(r *http.Request) (int, interface{}, error) {
+	// Get resul ID
+	jid, _ := mux.Vars(r)["jobID"]
+	jobID, err := strconv.Atoi(jid)
+	if err != nil {
+		logrus.Errorf("error getting job ID: %v", err)
+		return http.StatusInternalServerError, wrongParamsMsg, nil
+	}
+
+	rid, _ := mux.Vars(r)["resultID"]
+	resultID, err := strconv.Atoi(rid)
+	if err != nil {
+		logrus.Errorf("error getting result ID: %v", err)
+		return http.StatusInternalServerError, wrongParamsMsg, nil
+	}
+	logrus.Debugf("Calling GetResult with id: %s from job '%s'", resultID, jobID)
+
+	j, err := s.Storage.GetJob(jobID)
+	if err != nil {
+		logrus.Errorf("Error retrieving Job: %v", err)
+		return http.StatusInternalServerError, errorRetrievingJobMsg, nil
+	}
+	result, err := s.Storage.GetResult(j, resultID)
+	if err != nil {
+		logrus.Errorf("Error retrieving job result: %v", err)
+		return http.StatusInternalServerError, errorRetrievingJobResultsMsg, nil
+	}
+
+	return http.StatusOK, result, nil
+}

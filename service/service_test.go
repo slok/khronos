@@ -272,3 +272,87 @@ func TestGetResults(t *testing.T) {
 		}
 	}
 }
+
+func TestGetResult(t *testing.T) {
+	j := &job.Job{ID: 1, Name: "test1", Description: "test1", When: "@daily", Active: true, URL: &url.URL{}}
+	testStorageClient := storage.NewDummy()
+	testCronEngine := schedule.NewDummyCron(testConfig, testStorageClient, 0, "OK")
+	testCronEngine.Start(nil)
+
+	// Testing data
+	tests := []struct {
+		givenURI     string
+		givenResults map[string]map[string]*job.Result
+		givenJobs    map[string]*job.Job
+		wantCode     int
+		wantResultID int
+	}{
+		{
+			givenURI:     "/api/v1/jobs/1/results/1",
+			givenResults: make(map[string]map[string]*job.Result),
+			givenJobs:    make(map[string]*job.Job),
+			wantCode:     http.StatusInternalServerError,
+		},
+		{
+			givenURI:     "/api/v1/jobs/1/results/1",
+			givenResults: make(map[string]map[string]*job.Result),
+			givenJobs:    map[string]*job.Job{"job:1": j},
+			wantCode:     http.StatusInternalServerError,
+		},
+		{
+			givenURI: "/api/v1/jobs/1/results/3",
+			givenResults: map[string]map[string]*job.Result{
+				"job:1:results": map[string]*job.Result{
+					"result:1": &job.Result{ID: 1, Job: j, Out: "test1", Status: job.ResultOK, Start: time.Now().UTC(), Finish: time.Now().UTC()},
+					"result:2": &job.Result{ID: 2, Job: j, Out: "test1", Status: job.ResultError, Start: time.Now().UTC(), Finish: time.Now().UTC()},
+					"result:3": &job.Result{ID: 3, Job: j, Out: "test1", Status: job.ResultInternalError, Start: time.Now().UTC(), Finish: time.Now().UTC()},
+				},
+			},
+			givenJobs:    map[string]*job.Job{"job:1": j},
+			wantCode:     http.StatusOK,
+			wantResultID: 3,
+		},
+	}
+
+	for _, test := range tests {
+		// Set our dummy 'database' on the storage client
+		testStorageClient.Results = test.givenResults
+		testStorageClient.Jobs = test.givenJobs
+
+		// Create a testing server
+		testServer := server.NewSimpleServer(nil)
+
+		// Register our service on the server (we don't need configuration for this service)
+		testServer.Register(&KhronosService{
+			Config:  testConfig,
+			Storage: testStorageClient,
+			Cron:    testCronEngine,
+		})
+
+		// Create request and a test recorder
+		r, _ := http.NewRequest("GET", test.givenURI, nil)
+		w := httptest.NewRecorder()
+		testServer.ServeHTTP(w, r)
+		if w.Code != test.wantCode {
+			t.Errorf("Expected response code '%d'. Got '%d' instead ", test.wantCode, w.Code)
+		}
+
+		// Only check in good results
+		if w.Code == http.StatusOK {
+			b, err := ioutil.ReadAll(w.Body)
+
+			if err != nil {
+				t.Errorf("Error reading result body: %v", err)
+			}
+			var gotRes *job.Result
+			if err := json.Unmarshal(b, &gotRes); err != nil {
+				t.Errorf("Error unmarshaling: %v", err)
+			}
+
+			if gotRes.ID != test.wantResultID {
+				t.Errorf("Expected ID '%d'. Got '%d' instead ", test.wantResultID, gotRes.ID)
+			}
+		}
+
+	}
+}
