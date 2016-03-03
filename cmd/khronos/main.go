@@ -25,7 +25,7 @@ func main() {
 	stCli := storage.NewDummy()
 
 	// Create scheduler and start
-	cr := schedule.NewDummyCron(cfg, 0, "OK")
+	cr := schedule.NewDummyCron(cfg, stCli, 0, "OK")
 	cr.Start(nil)
 	defer cr.Stop()
 

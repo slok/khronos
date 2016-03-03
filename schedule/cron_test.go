@@ -10,11 +10,13 @@ import (
 
 	"github.com/slok/khronos/config"
 	"github.com/slok/khronos/job"
+	"github.com/slok/khronos/storage"
 )
 
 func TestRegisterCronJob(t *testing.T) {
-	// Create configuration and test vars
+	// Create configuration, storage and test vars
 	cfg := config.NewAppConfig(os.Getenv(config.KhronosConfigFileKey))
+	stCli := storage.NewDummy()
 	wantExitStatus := job.ResultOK
 	wantOut := fmt.Sprintf("Result: %d", rand.Int())
 	iterations := 3
@@ -29,7 +31,7 @@ func TestRegisterCronJob(t *testing.T) {
 	}
 
 	// Create our cron engine and start
-	dCron := NewDummyCron(cfg, wantExitStatus, wantOut)
+	dCron := NewDummyCron(cfg, stCli, wantExitStatus, wantOut)
 	var results []*job.Result
 	dCron.Start(func(r *job.Result) {
 		results = append(results, r)
@@ -60,9 +62,64 @@ func TestRegisterCronJob(t *testing.T) {
 	}
 }
 
+func TestRegisterCronJobStore(t *testing.T) {
+	// Create configuration, storage and test vars
+	cfg := config.NewAppConfig(os.Getenv(config.KhronosConfigFileKey))
+	stCli := storage.NewDummy()
+	wantExitStatus := job.ResultOK
+	wantOut := fmt.Sprintf("Result: %d", rand.Int())
+	iterations := 3
+
+	// Create a job & a result
+	u, _ := url.Parse("http://test.org/test")
+	j := &job.Job{
+		ID:     1,
+		URL:    u,
+		When:   "@every 1s",
+		Active: true,
+	}
+
+	// Create our cron engine and start
+	dCron := NewDummyCron(cfg, stCli, wantExitStatus, wantOut)
+	dCron.Start(nil)
+
+	// Register the job
+	dCron.RegisterCronJob(j)
+
+	// wait the number of iterations
+	time.Sleep(time.Duration(iterations) * time.Second)
+
+	// stop and check iterations where ok
+	dCron.Stop()
+
+	// Check stored results
+	results, err := stCli.GetResults(j, 0, 0)
+	if err != nil {
+		t.Errorf("Error retrieving stored results: %v", err)
+	}
+
+	if len(results) != iterations {
+		t.Errorf("Wrong result list; expected: %d; got: %d", iterations, len(results))
+	}
+
+	for _, r := range results {
+		if r.Job != j {
+			t.Errorf("Wrong result Job; expected: %d; got: %d", j, r.Job)
+		}
+		if r.Status != wantExitStatus {
+			t.Errorf("Wrong result status; expected: %d; got: %d", wantExitStatus, r.Status)
+		}
+		if r.Out != wantOut {
+			t.Errorf("Wrong result out; expected: %s; got: %s", wantOut, r.Out)
+		}
+	}
+
+}
+
 func TestStarCronEngine(t *testing.T) {
 	cfg := config.NewAppConfig(os.Getenv(config.KhronosConfigFileKey))
-	dCron := NewDummyCron(cfg, 0, "")
+	stCli := storage.NewDummy()
+	dCron := NewDummyCron(cfg, stCli, 0, "")
 
 	// First time should start ok
 	if err := dCron.Start(nil); err != nil {
@@ -84,7 +141,8 @@ func TestStarCronEngine(t *testing.T) {
 
 func TestStopCronEngine(t *testing.T) {
 	cfg := config.NewAppConfig(os.Getenv(config.KhronosConfigFileKey))
-	dCron := NewDummyCron(cfg, 0, "")
+	stCli := storage.NewDummy()
+	dCron := NewDummyCron(cfg, stCli, 0, "")
 
 	// Stopping without starting should fail
 	if err := dCron.Stop(); err == nil {

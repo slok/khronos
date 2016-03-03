@@ -13,6 +13,10 @@ type Job struct {
 	When        string
 	Active      bool
 	URL         *url.URL
+
+	// Don't link results on instance, isn't a requirement, get results from
+	// storage client with the job instance
+	//results []*Result
 }
 
 // MarshalJSON is a custom json marshaller for Job

@@ -9,6 +9,7 @@ import (
 
 	"github.com/slok/khronos/config"
 	"github.com/slok/khronos/job"
+	"github.com/slok/khronos/storage"
 )
 
 // Cron is be the registerer of jobs
@@ -30,28 +31,33 @@ type Cron struct {
 
 	// application context
 	cfg *config.AppConfig
+
+	// Storage client
+	storage storage.Client
 }
 
 // NewSimpleCron creates a new instance of a cron initialized with the basic functionality
-func NewSimpleCron(cfg *config.AppConfig) *Cron {
+func NewSimpleCron(cfg *config.AppConfig, storage storage.Client) *Cron {
 	return &Cron{
 		runner:    cron.New(),
 		scheduler: SimpleRun(),
 		Results:   make(chan *job.Result, cfg.ResultBufferLen),
 		started:   false,
 		cfg:       cfg,
+		storage:   storage,
 	}
 }
 
 // NewDummyCron creates a new instance of a cron that will execute dummy jobs
 // (do nothing) when the time comes
-func NewDummyCron(cfg *config.AppConfig, exitStatus int, out string) *Cron {
+func NewDummyCron(cfg *config.AppConfig, storage storage.Client, exitStatus int, out string) *Cron {
 	return &Cron{
 		runner:    cron.New(),
 		scheduler: DummyRun(exitStatus, out),
 		Results:   make(chan *job.Result, cfg.ResultBufferLen),
 		started:   false,
 		cfg:       cfg,
+		storage:   storage,
 	}
 }
 
@@ -65,6 +71,13 @@ func (c *Cron) startResultProcesser(f func(*job.Result)) error {
 	if f == nil {
 		f = func(r *job.Result) {
 			logrus.Debugf("received result from job '%d' with:\nstatus:%d;\nOutput:%s", r.Job.ID, r.Status, r.Out)
+
+			// Save result
+			err := c.storage.SaveResult(r)
+			if err != nil {
+				logrus.Errorf("error saving result '%d' from job '%d'", r.ID, r.Job.ID)
+			}
+			logrus.Debugf("Saved result '%d' for job id '%d'", r.ID, r.Job.ID)
 			// TODO: apply result processing logic
 		}
 	}

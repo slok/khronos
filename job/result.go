@@ -16,6 +16,7 @@ const (
 // Result has the result of a job
 type Result struct {
 	Job    *Job
+	ID     int
 	Out    string
 	Status int
 	Start  time.Time

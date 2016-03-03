@@ -4,15 +4,20 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 
 	"github.com/slok/khronos/service/validate"
 )
 
 const (
-	errorRetrievingAllJobsMsg = "Error retrieving all jobs"
-	errorCreatingJobMsg       = "Error creating job"
+	errorRetrievingAllJobsMsg    = "Error retrieving all jobs"
+	errorCreatingJobMsg          = "Error creating job"
+	errorRetrievingJobMsg        = "Error retrieving job"
+	errorRetrievingJobResultsMsg = "Error retrieving job results"
+	wrongParamsMsg               = "Wrong params"
 )
 
 //Ping informs service is alive
@@ -21,8 +26,8 @@ func (s *KhronosService) Ping(r *http.Request) (int, interface{}, error) {
 	return http.StatusOK, "pong", nil
 }
 
-//GetAllJobs returns a list of jobs
-func (s *KhronosService) GetAllJobs(r *http.Request) (int, interface{}, error) {
+//GetJobs returns a list of jobs
+func (s *KhronosService) GetJobs(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Calling GetAllJobs endpoint")
 
 	jobs, err := s.Storage.GetJobs(0, 0)
@@ -80,4 +85,87 @@ func (s *KhronosService) CreateNewJob(r *http.Request) (int, interface{}, error)
 	s.Cron.RegisterCronJob(j)
 
 	return http.StatusCreated, j, nil
+}
+
+// GetJob returns a single job by id
+func (s *KhronosService) GetJob(r *http.Request) (int, interface{}, error) {
+	// Get resul ID
+	jid, _ := mux.Vars(r)["id"]
+	logrus.Debug("Calling GetJob with id: %s", jid)
+
+	jobID, err := strconv.Atoi(jid)
+	if err != nil {
+		logrus.Errorf("error getting job ID: %v", err)
+		return http.StatusInternalServerError, wrongParamsMsg, nil
+	}
+
+	j, err := s.Storage.GetJob(jobID)
+
+	if err != nil {
+		logrus.Errorf("Error retrieving job: %v", err)
+		return http.StatusInternalServerError, errorRetrievingJobMsg, nil
+	}
+
+	return http.StatusOK, j, nil
+}
+
+// GetResults returns the jobs from an specific job
+func (s *KhronosService) GetResults(r *http.Request) (int, interface{}, error) {
+	// Get job ID
+	jid, _ := mux.Vars(r)["jobID"]
+	logrus.Debugf("Calling GetResults from jobid: %s", jid)
+
+	// Get the job
+	jobID, err := strconv.Atoi(jid)
+
+	if err != nil {
+		logrus.Errorf("error getting job ID: %v", err)
+		return http.StatusInternalServerError, wrongParamsMsg, nil
+	}
+	j, err := s.Storage.GetJob(jobID)
+	if err != nil {
+		logrus.Errorf("Error retrieving Job: %v", err)
+		return http.StatusInternalServerError, errorRetrievingJobMsg, nil
+	}
+
+	// Get job results
+	results, err := s.Storage.GetResults(j, 0, 0)
+	if err != nil {
+		logrus.Errorf("Error retrieving job results: %v", err)
+		return http.StatusInternalServerError, errorRetrievingJobResultsMsg, nil
+	}
+
+	return http.StatusOK, results, nil
+}
+
+// GetResult returns a single result by id
+func (s *KhronosService) GetResult(r *http.Request) (int, interface{}, error) {
+	// Get resul ID
+	jid, _ := mux.Vars(r)["jobID"]
+	jobID, err := strconv.Atoi(jid)
+	if err != nil {
+		logrus.Errorf("error getting job ID: %v", err)
+		return http.StatusInternalServerError, wrongParamsMsg, nil
+	}
+
+	rid, _ := mux.Vars(r)["resultID"]
+	resultID, err := strconv.Atoi(rid)
+	if err != nil {
+		logrus.Errorf("error getting result ID: %v", err)
+		return http.StatusInternalServerError, wrongParamsMsg, nil
+	}
+	logrus.Debugf("Calling GetResult with id: %d from job '%d'", resultID, jobID)
+
+	j, err := s.Storage.GetJob(jobID)
+	if err != nil {
+		logrus.Errorf("Error retrieving Job: %v", err)
+		return http.StatusInternalServerError, errorRetrievingJobMsg, nil
+	}
+	result, err := s.Storage.GetResult(j, resultID)
+	if err != nil {
+		logrus.Errorf("Error retrieving job result: %v", err)
+		return http.StatusInternalServerError, errorRetrievingJobResultsMsg, nil
+	}
+
+	return http.StatusOK, result, nil
 }
