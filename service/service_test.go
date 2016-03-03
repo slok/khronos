@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -91,8 +92,8 @@ func TestGetJobs(t *testing.T) {
 		{
 			givenURI: "/api/v1/jobs",
 			givenJobs: map[string]*job.Job{
-				"job:test1": &job.Job{ID: 1, Name: "test1", Description: "test1", When: "@daily", Active: true, URL: &url.URL{}},
-				"job:test2": &job.Job{ID: 2, Name: "test2", Description: "test2", When: "0 30 * * * *", Active: true, URL: &url.URL{}},
+				"job:1": &job.Job{ID: 1, Name: "test1", Description: "test1", When: "@daily", Active: true, URL: &url.URL{}},
+				"job:2": &job.Job{ID: 2, Name: "test2", Description: "test2", When: "0 30 * * * *", Active: true, URL: &url.URL{}},
 			},
 			wantCode:       http.StatusOK,
 			wantBodyLength: 2,
@@ -131,6 +132,75 @@ func TestGetJobs(t *testing.T) {
 
 		if len(got) != test.wantBodyLength {
 			t.Errorf("Expected length '%d'. Got '%d' instead ", test.wantBodyLength, len(got))
+		}
+	}
+}
+
+func TestGetJob(t *testing.T) {
+	testStorageClient := storage.NewDummy()
+	testCronEngine := schedule.NewDummyCron(testConfig, testStorageClient, 0, "OK")
+	testCronEngine.Start(nil)
+
+	j2 := &job.Job{ID: 2, Name: "test2", Description: "test2", When: "0 30 * * * *", Active: false, URL: &url.URL{}}
+	// Testing data
+	tests := []struct {
+		givenURI  string
+		givenJobs map[string]*job.Job
+		wantCode  int
+		wantJob   *job.Job
+	}{
+		{
+			givenURI:  "/api/v1/jobs/1",
+			givenJobs: make(map[string]*job.Job),
+			wantCode:  http.StatusInternalServerError,
+		},
+		{
+			givenURI: "/api/v1/jobs/2",
+			givenJobs: map[string]*job.Job{
+				"job:1": &job.Job{ID: 1, Name: "test1", Description: "test1", When: "@daily", Active: true, URL: &url.URL{}},
+				"job:2": j2, // The one to check,
+				"job:3": &job.Job{ID: 3, Name: "test3", Description: "test3", When: "*/10 30 * 4 * 1", Active: true, URL: &url.URL{}},
+			},
+			wantCode: http.StatusOK,
+			wantJob:  j2,
+		},
+	}
+
+	// Tests
+	for _, test := range tests {
+		// Set our dummy 'database' on the storage client
+		testStorageClient.Jobs = test.givenJobs
+		testStorageClient.JobCounter = len(test.givenJobs)
+
+		// Create a testing server
+		testServer := server.NewSimpleServer(nil)
+
+		// Register our service on the server (we don't need configuration for this service)
+		testServer.Register(&KhronosService{
+			Config:  testConfig,
+			Storage: testStorageClient,
+			Cron:    testCronEngine,
+		})
+
+		// Create request and a test recorder
+		r, _ := http.NewRequest("GET", test.givenURI, nil)
+		w := httptest.NewRecorder()
+		testServer.ServeHTTP(w, r)
+		if w.Code != test.wantCode {
+			t.Errorf("Expected response code '%d'. Got '%d' instead ", test.wantCode, w.Code)
+		}
+
+		// Only check when ok
+		if w.Code == http.StatusOK {
+			var got *job.Job
+			err := json.NewDecoder(w.Body).Decode(&got)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if !reflect.DeepEqual(got, test.wantJob) {
+				t.Errorf("Expected job '%#v'. Got '%#v' instead ", test.wantJob, got)
+			}
 		}
 	}
 }
@@ -275,6 +345,7 @@ func TestGetResults(t *testing.T) {
 
 func TestGetResult(t *testing.T) {
 	j := &job.Job{ID: 1, Name: "test1", Description: "test1", When: "@daily", Active: true, URL: &url.URL{}}
+	res3 := &job.Result{ID: 3, Job: nil, Out: "test1", Status: job.ResultInternalError, Start: time.Now().UTC(), Finish: time.Now().UTC()}
 	testStorageClient := storage.NewDummy()
 	testCronEngine := schedule.NewDummyCron(testConfig, testStorageClient, 0, "OK")
 	testCronEngine.Start(nil)
@@ -285,7 +356,7 @@ func TestGetResult(t *testing.T) {
 		givenResults map[string]map[string]*job.Result
 		givenJobs    map[string]*job.Job
 		wantCode     int
-		wantResultID int
+		wantResult   *job.Result
 	}{
 		{
 			givenURI:     "/api/v1/jobs/1/results/1",
@@ -305,12 +376,12 @@ func TestGetResult(t *testing.T) {
 				"job:1:results": map[string]*job.Result{
 					"result:1": &job.Result{ID: 1, Job: j, Out: "test1", Status: job.ResultOK, Start: time.Now().UTC(), Finish: time.Now().UTC()},
 					"result:2": &job.Result{ID: 2, Job: j, Out: "test1", Status: job.ResultError, Start: time.Now().UTC(), Finish: time.Now().UTC()},
-					"result:3": &job.Result{ID: 3, Job: j, Out: "test1", Status: job.ResultInternalError, Start: time.Now().UTC(), Finish: time.Now().UTC()},
+					"result:3": res3, // the one to check
 				},
 			},
-			givenJobs:    map[string]*job.Job{"job:1": j},
-			wantCode:     http.StatusOK,
-			wantResultID: 3,
+			givenJobs:  map[string]*job.Job{"job:1": j},
+			wantCode:   http.StatusOK,
+			wantResult: res3,
 		},
 	}
 
@@ -348,9 +419,11 @@ func TestGetResult(t *testing.T) {
 			if err := json.Unmarshal(b, &gotRes); err != nil {
 				t.Errorf("Error unmarshaling: %v", err)
 			}
+			// Fix jobs for the deep equal
+			gotRes.Job = nil
 
-			if gotRes.ID != test.wantResultID {
-				t.Errorf("Expected ID '%d'. Got '%d' instead ", test.wantResultID, gotRes.ID)
+			if !reflect.DeepEqual(gotRes, test.wantResult) {
+				t.Errorf("Expected Result '%#v'. Got '%#v' instead ", test.wantResult, gotRes)
 			}
 		}
 

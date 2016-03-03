@@ -16,7 +16,7 @@ const (
 	errorRetrievingAllJobsMsg    = "Error retrieving all jobs"
 	errorCreatingJobMsg          = "Error creating job"
 	errorRetrievingJobMsg        = "Error retrieving job"
-	errorRetrievingJobResultsMsg = "Error cretrieving job results"
+	errorRetrievingJobResultsMsg = "Error retrieving job results"
 	wrongParamsMsg               = "Wrong params"
 )
 
@@ -90,10 +90,23 @@ func (s *KhronosService) CreateNewJob(r *http.Request) (int, interface{}, error)
 // GetJob returns a single job by id
 func (s *KhronosService) GetJob(r *http.Request) (int, interface{}, error) {
 	// Get resul ID
-	jobID, _ := mux.Vars(r)["id"]
-	logrus.Debug("Calling GetJob with id: %s", jobID)
+	jid, _ := mux.Vars(r)["id"]
+	logrus.Debug("Calling GetJob with id: %s", jid)
 
-	return http.StatusNotImplemented, nil, nil
+	jobID, err := strconv.Atoi(jid)
+	if err != nil {
+		logrus.Errorf("error getting job ID: %v", err)
+		return http.StatusInternalServerError, wrongParamsMsg, nil
+	}
+
+	j, err := s.Storage.GetJob(jobID)
+
+	if err != nil {
+		logrus.Errorf("Error retrieving job: %v", err)
+		return http.StatusInternalServerError, errorRetrievingJobMsg, nil
+	}
+
+	return http.StatusOK, j, nil
 }
 
 // GetResults returns the jobs from an specific job
@@ -141,7 +154,7 @@ func (s *KhronosService) GetResult(r *http.Request) (int, interface{}, error) {
 		logrus.Errorf("error getting result ID: %v", err)
 		return http.StatusInternalServerError, wrongParamsMsg, nil
 	}
-	logrus.Debugf("Calling GetResult with id: %s from job '%s'", resultID, jobID)
+	logrus.Debugf("Calling GetResult with id: %d from job '%d'", resultID, jobID)
 
 	j, err := s.Storage.GetJob(jobID)
 	if err != nil {
