@@ -39,10 +39,9 @@ import (
 )
 
 const (
-	jobsBucket       = "jobs"
-	resultsBucket    = "results"
-	jobResultBuckets = "job:%d:result"
-	resultKey        = "%d"
+	jobsBucket        = "jobs"
+	resultsBucket     = "results"
+	jobResultsBuckets = "job:%s:results"
 )
 
 // BoltDB client to store jobs on database
@@ -237,5 +236,63 @@ func (c *BoltDB) DeleteJob(j *job.Job) error {
 	}
 
 	logrus.Debugf("Job '%d' deleted boltdb", j.ID)
+	return nil
+}
+
+// GetResults returns all the results of a jobs from boltdb. Use low and high params as slice operator
+func (c *BoltDB) GetResults(j *job.Job, low, high int) ([]*job.Result, error) {
+	return []*job.Result{}, nil
+
+}
+
+// GetResult retursn a single result from boltdb
+func (c *BoltDB) GetResult(j *job.Job, id int) (*job.Result, error) {
+	return nil, nil
+}
+
+// SaveResult stores a result of a job on boltdb
+func (c *BoltDB) SaveResult(r *job.Result) error {
+	// First check if the job is present, if not, then error
+	if _, err := c.GetJob(r.Job.ID); err != nil {
+		return err
+	}
+
+	err := c.DB.Update(func(tx *bolt.Tx) error {
+		resB := tx.Bucket([]byte(resultsBucket))
+
+		// Create job results bucket if doens't exist
+		jobresKey := fmt.Sprintf(jobResultsBuckets, string(idToByte(r.Job.ID)))
+		b, err := resB.CreateBucketIfNotExists([]byte(jobresKey))
+		if err != nil {
+			return fmt.Errorf("error creating bucket: %s", err)
+		}
+
+		// Create a new ID for the new result, not new ID if it has already (update)
+		// Starts in 1, so its safe to check with 0
+		if r.ID == 0 {
+			id, _ := b.NextSequence()
+			r.ID = int(id)
+		}
+
+		// Marshal the result
+		buf, err := json.Marshal(r)
+		if err != nil {
+			return err
+		}
+
+		// Save the result
+		return b.Put(idToByte(r.ID), buf)
+	})
+	if err != nil {
+		err = fmt.Errorf("error storing result '%d': %v", r.ID, err)
+		logrus.Error(err.Error())
+		return err
+	}
+	logrus.Debugf("Stored result '%d' boltdb", r.ID)
+	return nil
+}
+
+// DeleteResult deletes a result from boltdv, doesn't return error if result doesn't exist
+func (c *BoltDB) DeleteResult(r *job.Result) error {
 	return nil
 }

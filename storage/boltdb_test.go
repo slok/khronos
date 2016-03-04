@@ -71,6 +71,13 @@ func TestBoltDBSaveJob(t *testing.T) {
 		t.Errorf("Error creating bolt connection: %v", err)
 	}
 
+	// Close ok
+	defer func() {
+		if err := tearDownBoltDB(c.DB); err != nil {
+			t.Error(err)
+		}
+	}()
+
 	// Create jobs
 	u1, _ := url.Parse("http://khronos.io/job1")
 	u2, _ := url.Parse("http://khronos.io/job2")
@@ -119,11 +126,6 @@ func TestBoltDBSaveJob(t *testing.T) {
 		if gotJob.ID != i+1 {
 			t.Errorf("IDS should be equal; expected: %d,\n got: %d", i+1, gotJob.ID)
 		}
-	}
-
-	// Close ok
-	if err := tearDownBoltDB(c.DB); err != nil {
-		t.Error(err)
 	}
 }
 
@@ -365,6 +367,91 @@ func TestBoltDBDeleteJob(t *testing.T) {
 		// Check not in database
 		if _, err := c.GetJob(j.ID); err == nil {
 			t.Errorf("Job shouldn't exists, should got error, didn't")
+		}
+	}
+}
+
+func TestBoltDBResultJob(t *testing.T) {
+	boltPath := randomPath()
+	// Create a new boltdb connection
+	c, err := NewBoltDB(boltPath, 2*time.Second)
+	if err != nil {
+		t.Errorf("Error creating bolt connection: %v", err)
+	}
+
+	// Close ok
+	defer func() {
+		if err := tearDownBoltDB(c.DB); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	// Create job & results
+	u1, _ := url.Parse("http://khronos.io/job1")
+	j := &job.Job{
+		Name:        "job1",
+		Description: "Job 1",
+		When:        "@every 1m",
+		Active:      true,
+		URL:         u1,
+	}
+
+	rs := []*job.Result{
+		&job.Result{
+			Job:    j,
+			Out:    "Linux khronos-dev 4.4.1-2-ARCH #1 SMP PREEMPT Wed Feb 3 13:12:33 UTC 2016 x86_64 GNU/Linux",
+			Status: job.ResultOK,
+			Start:  time.Now().UTC(),
+			Finish: time.Now().UTC(),
+		},
+		&job.Result{
+			Job:    j,
+			Out:    "ls: cannot open directory /root/: Permission denied",
+			Status: job.ResultError,
+			Start:  time.Now().UTC(),
+			Finish: time.Now().UTC(),
+		},
+	}
+
+	for i, r := range rs {
+		// Save result on boltdb
+		err := c.SaveJob(j)
+		if err != nil {
+			t.Errorf("Error saving job %d: %v", j.ID, err)
+		}
+
+		// Save the result
+		err = c.SaveResult(r)
+		if err != nil {
+			t.Errorf("Error saving result %d: %v", j.ID, err)
+		}
+
+		gotRes := &job.Result{}
+
+		// Retrieve result
+		err = c.DB.View(func(tx *bolt.Tx) error {
+			// Get main results bucket
+			rsB := tx.Bucket([]byte(resultsBucket))
+			// Get results bucket
+			rbKey := fmt.Sprintf(jobResultsBuckets, string(idToByte(r.Job.ID)))
+			rB := rsB.Bucket([]byte(rbKey))
+
+			// Get result
+			resKey := idToByte(r.ID)
+			if err := json.Unmarshal(rB.Get(resKey), gotRes); err != nil {
+				return err
+			}
+			return nil
+		})
+
+		// Check all the info correct
+		if !reflect.DeepEqual(*r, *gotRes) {
+			t.Errorf("Results should be equal; expected: %#v,\n got: %#v", r, gotRes)
+		}
+
+		// Check ID ok
+		if gotRes.ID != i+1 {
+			t.Errorf("IDS should be equal; expected: %d,\n got: %d", i+1, gotRes.ID)
 		}
 	}
 }
