@@ -247,7 +247,33 @@ func (c *BoltDB) GetResults(j *job.Job, low, high int) ([]*job.Result, error) {
 
 // GetResult retursn a single result from boltdb
 func (c *BoltDB) GetResult(j *job.Job, id int) (*job.Result, error) {
-	return nil, nil
+	r := &job.Result{}
+
+	err := c.DB.View(func(tx *bolt.Tx) error {
+		// Get main results bucket
+		rsB := tx.Bucket([]byte(resultsBucket))
+
+		// Get results bucket
+		rbKey := fmt.Sprintf(jobResultsBuckets, string(idToByte(j.ID)))
+		rB := rsB.Bucket([]byte(rbKey))
+
+		// Get result
+		res := rB.Get(idToByte(id))
+		if res == nil {
+			return errors.New("result does not exists")
+		}
+
+		if err := json.Unmarshal(res, r); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		logrus.Errorf("error retrieving result '%d' form boltdb: %v", id, err)
+		return nil, err
+	}
+
+	return r, nil
 }
 
 // SaveResult stores a result of a job on boltdb

@@ -371,7 +371,7 @@ func TestBoltDBDeleteJob(t *testing.T) {
 	}
 }
 
-func TestBoltDBResultJob(t *testing.T) {
+func TestBoltDBSaveResultJob(t *testing.T) {
 	boltPath := randomPath()
 	// Create a new boltdb connection
 	c, err := NewBoltDB(boltPath, 2*time.Second)
@@ -453,5 +453,72 @@ func TestBoltDBResultJob(t *testing.T) {
 		if gotRes.ID != i+1 {
 			t.Errorf("IDS should be equal; expected: %d,\n got: %d", i+1, gotRes.ID)
 		}
+	}
+}
+
+func TestBoltDBGetResult(t *testing.T) {
+	boltPath := randomPath()
+	totalResults := 50
+	u, _ := url.Parse("http://khronos.io/job1")
+	j := &job.Job{
+		Name:        "job1",
+		Description: "Job 1",
+		When:        "@every 1m",
+		Active:      true,
+		URL:         u,
+	}
+
+	// Create a new boltdb connection
+	c, err := NewBoltDB(boltPath, 2*time.Second)
+	if err != nil {
+		t.Errorf("Error creating bolt connection: %v", err)
+	}
+	// Close ok
+	defer func() {
+		if err := tearDownBoltDB(c.DB); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	// Save our job
+	if err := c.SaveJob(j); err != nil {
+		t.Error("Error saving job on database")
+	}
+
+	// Create a buch of results
+	for i := 1; i <= totalResults; i++ {
+		r := &job.Result{
+			Job:    j,
+			Out:    fmt.Sprintf("Out %d", i),
+			Status: job.ResultOK,
+			Start:  time.Now().UTC(),
+			Finish: time.Now().UTC(),
+		}
+		if err := c.SaveResult(r); err != nil {
+			t.Error("Error saving result on database")
+		}
+	}
+
+	// Check all the stored jobs retrieving one by one
+	for id := 1; id <= totalResults; id++ {
+		gotRes, err := c.GetResult(j, id)
+
+		if err != nil {
+			t.Errorf("Result should be retrieved, it didn't: %v", err)
+		}
+
+		if gotRes.Out != fmt.Sprintf("Out %d", id) {
+			t.Errorf("Resul out didn't match; expected: %#v;\ngot: %#v", fmt.Sprintf("Out %d", id), gotRes.Out)
+		}
+
+	}
+
+	// Check not existent job
+	if _, err = c.GetResult(j, totalResults+1); err == nil {
+		t.Error("Expected error but didn't got")
+	}
+
+	if !strings.Contains(err.Error(), "result does not exists") {
+		t.Errorf("Expected error but not this, got: %v", err)
 	}
 }
