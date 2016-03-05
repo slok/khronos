@@ -241,7 +241,68 @@ func (c *BoltDB) DeleteJob(j *job.Job) error {
 
 // GetResults returns all the results of a jobs from boltdb. Use low and high params as slice operator
 func (c *BoltDB) GetResults(j *job.Job, low, high int) ([]*job.Result, error) {
-	return []*job.Result{}, nil
+	res := []*job.Result{}
+
+	// In database id start from one, not 0, so we convert to help in the logic
+	low++
+	high++
+
+	// if low and high the same then return empty slice
+	if low == high {
+		return res, nil
+	}
+
+	// Check indexes ok
+	if high != 1 && low >= high {
+		return nil, errors.New("wrong parameters")
+	}
+
+	// Get all asked jobs
+	err := c.DB.View(func(tx *bolt.Tx) error {
+		// Get main results bucket
+		rsB := tx.Bucket([]byte(resultsBucket))
+		// Get results bucket
+		rbKey := fmt.Sprintf(jobResultsBuckets, string(idToByte(j.ID)))
+		rB := rsB.Bucket([]byte(rbKey))
+
+		c := rB.Cursor()
+
+		var lastKey []byte
+		if high == 1 {
+			lastKey = nil
+
+		} else {
+			lastKey = idToByte(high)
+		}
+
+		firstKey := idToByte(low)
+
+		// Until we reach the number asked for (we compare that the returned key is not the last one or is nil, that means the end)
+		for k, v := c.Seek([]byte(firstKey)); k != nil && string(k) != string(lastKey); k, v = c.Next() {
+			r := &job.Result{}
+			if err := json.Unmarshal(v, r); err != nil {
+				return err
+			}
+			// Set same job instance to save memory, let GC remove the Unmarshal created job
+			r.Job = j
+			res = append(res, r)
+		}
+		return nil
+	})
+
+	if err != nil {
+		logrus.Errorf("error retrieving jobs form boltdb: %v", err)
+		return nil, err
+	}
+
+	// return error if not retrieved all asked for (if high is 0 means: want all from low,
+	// doesn't matter how many, so in this case no errors)
+	if high > 1 && len(res) != high-low {
+		return res, fmt.Errorf("error retrieving all asked for; expected: %d; got: %d", high-low, len(res))
+	}
+
+	logrus.Debugf("Retrieved '%d' results from boltdb without errors", len(res))
+	return res, nil
 
 }
 
@@ -266,6 +327,9 @@ func (c *BoltDB) GetResult(j *job.Job, id int) (*job.Result, error) {
 		if err := json.Unmarshal(res, r); err != nil {
 			return err
 		}
+
+		// Set same job instance to save memory, let GC remove the Unmarshal created job
+		r.Job = j
 		return nil
 	})
 	if err != nil {

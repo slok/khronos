@@ -511,6 +511,11 @@ func TestBoltDBGetResult(t *testing.T) {
 			t.Errorf("Resul out didn't match; expected: %#v;\ngot: %#v", fmt.Sprintf("Out %d", id), gotRes.Out)
 		}
 
+		// Check Job instance is the same (pointer)
+		if gotRes.Job != j {
+			t.Error("Jobs should be the same, they aren't")
+		}
+
 	}
 
 	// Check not existent job
@@ -520,5 +525,133 @@ func TestBoltDBGetResult(t *testing.T) {
 
 	if !strings.Contains(err.Error(), "result does not exists") {
 		t.Errorf("Expected error but not this, got: %v", err)
+	}
+}
+
+func TestBoltDBGetResultss(t *testing.T) {
+	boltPath := randomPath()
+	totalResults := 50
+	u, _ := url.Parse("http://khronos.io/job1")
+	j := &job.Job{
+		Name:        "job1",
+		Description: "Job 1",
+		When:        "@every 1m",
+		Active:      true,
+		URL:         u,
+	}
+
+	// Create a new boltdb connection
+	c, err := NewBoltDB(boltPath, 2*time.Second)
+	if err != nil {
+		t.Errorf("Error creating bolt connection: %v", err)
+	}
+	// Close ok
+	defer func() {
+		if err := tearDownBoltDB(c.DB); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	// Save our job
+	if err := c.SaveJob(j); err != nil {
+		t.Error("Error saving job on database")
+	}
+
+	// Create a buch of results
+	for i := 1; i <= totalResults; i++ {
+		r := &job.Result{
+			Job:    j,
+			Out:    fmt.Sprintf("Out %d", i),
+			Status: job.ResultOK,
+			Start:  time.Now().UTC(),
+			Finish: time.Now().UTC(),
+		}
+		if err := c.SaveResult(r); err != nil {
+			t.Error("Error saving result on database")
+		}
+	}
+
+	// Prepare tests
+	tests := []struct {
+		givenLow   int
+		givenHigh  int
+		wantLength int
+		wantError  bool
+	}{
+		{
+			givenLow:   totalResults - 20,
+			givenHigh:  totalResults - 10,
+			wantLength: 10,
+			wantError:  false,
+		},
+		{
+			givenLow:   totalResults - 10,
+			givenHigh:  totalResults,
+			wantLength: 10,
+			wantError:  false,
+		},
+		{
+			givenLow:   totalResults - 10,
+			givenHigh:  0,
+			wantLength: 10,
+			wantError:  false,
+		},
+		{
+			givenLow:   totalResults - 20,
+			givenHigh:  totalResults - 20,
+			wantLength: 0,
+			wantError:  false,
+		},
+		{
+			givenLow:  totalResults - 30,
+			givenHigh: 1,
+			wantError: true,
+		},
+		{
+			givenLow:  totalResults - 10,
+			givenHigh: totalResults + 1,
+			wantError: true,
+		},
+		{
+			givenLow:  totalResults - 40,
+			givenHigh: totalResults + 100,
+			wantError: true,
+		},
+	}
+
+	for _, test := range tests {
+		res, err := c.GetResults(j, test.givenLow, test.givenHigh)
+
+		// Check it should error or not
+		if test.wantError && err == nil {
+			t.Error("result retrieval didn't error when it should")
+		}
+
+		if !test.wantError && err != nil {
+			t.Errorf("result retrieval error when it shouldn't: %v", err)
+
+		}
+
+		// Only check trusted content, this means no errors
+		if err == nil {
+			// Check len
+			if len(res) != test.wantLength {
+				t.Errorf("Number of retrieved result is wrong; expected: %d; got: %d", test.wantLength, len(res))
+			}
+			// Check content
+			for k, gotRes := range res {
+				i := test.givenLow + k + 1 // add + 1 because jobs ids start in 1 not 0
+
+				// Check result ok
+				if gotRes.Out != fmt.Sprintf("Out %d", i) {
+					t.Errorf("Result out didn't match; expected: %#v;\ngot: %#v", fmt.Sprintf("Out %d", i), gotRes.Out)
+				}
+
+				// Check Job instance is the same (pointer)
+				if gotRes.Job != j {
+					t.Error("Jobs should be the same, they aren't")
+				}
+			}
+		}
 	}
 }
