@@ -2,6 +2,7 @@ package schedule
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -27,7 +28,8 @@ type Cron struct {
 	Results chan *job.Result
 
 	// started flag is up if any other cron is up
-	started bool
+	started    bool
+	startMutex *sync.Mutex
 
 	// application context
 	cfg *config.AppConfig
@@ -39,12 +41,13 @@ type Cron struct {
 // NewSimpleCron creates a new instance of a cron initialized with the basic functionality
 func NewSimpleCron(cfg *config.AppConfig, storage storage.Client) *Cron {
 	return &Cron{
-		runner:    cron.New(),
-		scheduler: SimpleRun(),
-		Results:   make(chan *job.Result, cfg.ResultBufferLen),
-		started:   false,
-		cfg:       cfg,
-		storage:   storage,
+		runner:     cron.New(),
+		scheduler:  SimpleRun(),
+		Results:    make(chan *job.Result, cfg.ResultBufferLen),
+		started:    false,
+		startMutex: &sync.Mutex{},
+		cfg:        cfg,
+		storage:    storage,
 	}
 }
 
@@ -52,17 +55,19 @@ func NewSimpleCron(cfg *config.AppConfig, storage storage.Client) *Cron {
 // (do nothing) when the time comes
 func NewDummyCron(cfg *config.AppConfig, storage storage.Client, exitStatus int, out string) *Cron {
 	return &Cron{
-		runner:    cron.New(),
-		scheduler: DummyRun(exitStatus, out),
-		Results:   make(chan *job.Result, cfg.ResultBufferLen),
-		started:   false,
-		cfg:       cfg,
-		storage:   storage,
+		runner:     cron.New(),
+		scheduler:  DummyRun(exitStatus, out),
+		Results:    make(chan *job.Result, cfg.ResultBufferLen),
+		started:    false,
+		startMutex: &sync.Mutex{},
+		cfg:        cfg,
+		storage:    storage,
 	}
 }
 
 // startResultProcesser starts the processor for the results (runs in a goroutine)
 func (c *Cron) startResultProcesser(f func(*job.Result)) error {
+	// Started already aquired from Start
 	if c.started {
 		return errors.New("Already running")
 	}
@@ -96,6 +101,9 @@ func (c *Cron) startResultProcesser(f func(*job.Result)) error {
 // Start starts cron job scheduler and the result listener. f parameter is the function
 // that will be executed for each result, could be nil.
 func (c *Cron) Start(f func(*job.Result)) error {
+	c.startMutex.Lock()
+	defer c.startMutex.Unlock()
+
 	if c.started {
 		return errors.New("Already running")
 	}
@@ -113,6 +121,9 @@ func (c *Cron) Start(f func(*job.Result)) error {
 
 // Stop stops cron job scheduler and result listener
 func (c *Cron) Stop() error {
+	c.startMutex.Lock()
+	defer c.startMutex.Unlock()
+
 	if !c.started {
 		return errors.New("Not running")
 	}

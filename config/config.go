@@ -36,13 +36,11 @@ func NewAppConfig(configFile string) *AppConfig {
 func (a *AppConfig) loadConfigFromFile() {
 	config.LoadJSONFile(a.ConfigFilePath, a)
 	config.LoadJSONFile(a.ConfigFilePath, a.Server)
-	config.LoadJSONFile(a.ConfigFilePath, a.BoltDB)
 }
 
 func (a *AppConfig) loadConfigFromEnv() {
 	config.LoadEnvConfig(a)
 	config.LoadEnvConfig(a.Server)
-	//config.LoadEnvConfig(a.BoltDB)
 }
 
 // ConfigureApp loads all the application settings with a priority: First loads
@@ -58,4 +56,7 @@ func (a *AppConfig) ConfigureApp() {
 
 	// load khronos configuration
 	a.LoadKhronosConfig(a)
+
+	// load boltdb configuration
+	a.LoadBoltDBConfig(a)
 }
