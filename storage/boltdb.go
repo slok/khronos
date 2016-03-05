@@ -39,10 +39,9 @@ import (
 )
 
 const (
-	jobsBucket       = "jobs"
-	resultsBucket    = "results"
-	jobResultBuckets = "job:%d:result"
-	resultKey        = "%d"
+	jobsBucket        = "jobs"
+	resultsBucket     = "results"
+	jobResultsBuckets = "job:%s:results"
 )
 
 // BoltDB client to store jobs on database
@@ -237,5 +236,166 @@ func (c *BoltDB) DeleteJob(j *job.Job) error {
 	}
 
 	logrus.Debugf("Job '%d' deleted boltdb", j.ID)
+	return nil
+}
+
+// GetResults returns all the results of a jobs from boltdb. Use low and high params as slice operator
+func (c *BoltDB) GetResults(j *job.Job, low, high int) ([]*job.Result, error) {
+	res := []*job.Result{}
+
+	// In database id start from one, not 0, so we convert to help in the logic
+	low++
+	high++
+
+	// if low and high the same then return empty slice
+	if low == high {
+		return res, nil
+	}
+
+	// Check indexes ok
+	if high != 1 && low >= high {
+		return nil, errors.New("wrong parameters")
+	}
+
+	// Get all asked jobs
+	err := c.DB.View(func(tx *bolt.Tx) error {
+		// Get main results bucket
+		rsB := tx.Bucket([]byte(resultsBucket))
+		// Get results bucket
+		rbKey := fmt.Sprintf(jobResultsBuckets, string(idToByte(j.ID)))
+		rB := rsB.Bucket([]byte(rbKey))
+
+		c := rB.Cursor()
+
+		var lastKey []byte
+		if high == 1 {
+			lastKey = nil
+
+		} else {
+			lastKey = idToByte(high)
+		}
+
+		firstKey := idToByte(low)
+
+		// Until we reach the number asked for (we compare that the returned key is not the last one or is nil, that means the end)
+		for k, v := c.Seek([]byte(firstKey)); k != nil && string(k) != string(lastKey); k, v = c.Next() {
+			r := &job.Result{}
+			if err := json.Unmarshal(v, r); err != nil {
+				return err
+			}
+			// Set same job instance to save memory, let GC remove the Unmarshal created job
+			r.Job = j
+			res = append(res, r)
+		}
+		return nil
+	})
+
+	if err != nil {
+		logrus.Errorf("error retrieving jobs form boltdb: %v", err)
+		return nil, err
+	}
+
+	// return error if not retrieved all asked for (if high is 0 means: want all from low,
+	// doesn't matter how many, so in this case no errors)
+	if high > 1 && len(res) != high-low {
+		return res, fmt.Errorf("error retrieving all asked for; expected: %d; got: %d", high-low, len(res))
+	}
+
+	logrus.Debugf("Retrieved '%d' results from boltdb without errors", len(res))
+	return res, nil
+
+}
+
+// GetResult retursn a single result from boltdb
+func (c *BoltDB) GetResult(j *job.Job, id int) (*job.Result, error) {
+	r := &job.Result{}
+
+	err := c.DB.View(func(tx *bolt.Tx) error {
+		// Get main results bucket
+		rsB := tx.Bucket([]byte(resultsBucket))
+
+		// Get results bucket
+		rbKey := fmt.Sprintf(jobResultsBuckets, string(idToByte(j.ID)))
+		rB := rsB.Bucket([]byte(rbKey))
+
+		// Get result
+		res := rB.Get(idToByte(id))
+		if res == nil {
+			return errors.New("result does not exists")
+		}
+
+		if err := json.Unmarshal(res, r); err != nil {
+			return err
+		}
+
+		// Set same job instance to save memory, let GC remove the Unmarshal created job
+		r.Job = j
+		return nil
+	})
+	if err != nil {
+		logrus.Errorf("error retrieving result '%d' form boltdb: %v", id, err)
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// SaveResult stores a result of a job on boltdb
+func (c *BoltDB) SaveResult(r *job.Result) error {
+	// First check if the job is present, if not, then error
+	if _, err := c.GetJob(r.Job.ID); err != nil {
+		return err
+	}
+
+	err := c.DB.Update(func(tx *bolt.Tx) error {
+		resB := tx.Bucket([]byte(resultsBucket))
+
+		// Create job results bucket if doens't exist
+		jobresKey := fmt.Sprintf(jobResultsBuckets, string(idToByte(r.Job.ID)))
+		b, err := resB.CreateBucketIfNotExists([]byte(jobresKey))
+		if err != nil {
+			return fmt.Errorf("error creating bucket: %s", err)
+		}
+
+		// Create a new ID for the new result, not new ID if it has already (update)
+		// Starts in 1, so its safe to check with 0
+		if r.ID == 0 {
+			id, _ := b.NextSequence()
+			r.ID = int(id)
+		}
+
+		// Marshal the result
+		buf, err := json.Marshal(r)
+		if err != nil {
+			return err
+		}
+
+		// Save the result
+		return b.Put(idToByte(r.ID), buf)
+	})
+	if err != nil {
+		err = fmt.Errorf("error storing result '%d': %v", r.ID, err)
+		logrus.Error(err.Error())
+		return err
+	}
+	logrus.Debugf("Stored result '%d' boltdb", r.ID)
+	return nil
+}
+
+// DeleteResult deletes a result from boltdv, doesn't return error if result doesn't exist
+func (c *BoltDB) DeleteResult(r *job.Result) error {
+	err := c.DB.Update(func(tx *bolt.Tx) error {
+		resB := tx.Bucket([]byte(resultsBucket))
+		jobresKey := fmt.Sprintf(jobResultsBuckets, string(idToByte(r.Job.ID)))
+		return resB.Bucket([]byte(jobresKey)).Delete(idToByte(r.ID))
+	})
+
+	if err != nil {
+		err = fmt.Errorf("error deleting result '%d': %v", r.ID, err)
+		logrus.Error(err.Error())
+		return err
+	}
+
+	logrus.Debugf("Res '%d' deleted boltdb", r.ID)
 	return nil
 }
