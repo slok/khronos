@@ -384,5 +384,18 @@ func (c *BoltDB) SaveResult(r *job.Result) error {
 
 // DeleteResult deletes a result from boltdv, doesn't return error if result doesn't exist
 func (c *BoltDB) DeleteResult(r *job.Result) error {
+	err := c.DB.Update(func(tx *bolt.Tx) error {
+		resB := tx.Bucket([]byte(resultsBucket))
+		jobresKey := fmt.Sprintf(jobResultsBuckets, string(idToByte(r.Job.ID)))
+		return resB.Bucket([]byte(jobresKey)).Delete(idToByte(r.ID))
+	})
+
+	if err != nil {
+		err = fmt.Errorf("error deleting result '%d': %v", r.ID, err)
+		logrus.Error(err.Error())
+		return err
+	}
+
+	logrus.Debugf("Res '%d' deleted boltdb", r.ID)
 	return nil
 }

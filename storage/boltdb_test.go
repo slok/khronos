@@ -655,3 +655,68 @@ func TestBoltDBGetResultss(t *testing.T) {
 		}
 	}
 }
+
+func TestBoltDBDeleteResult(t *testing.T) {
+	boltPath := randomPath()
+	totalResults := 5
+	results := make([]*job.Result, totalResults, totalResults)
+	u, _ := url.Parse("http://khronos.io/job1")
+	j := &job.Job{
+		Name:        "job1",
+		Description: "Job 1",
+		When:        "@every 1m",
+		Active:      true,
+		URL:         u,
+	}
+
+	// Create a new boltdb connection
+	c, err := NewBoltDB(boltPath, 2*time.Second)
+	if err != nil {
+		t.Errorf("Error creating bolt connection: %v", err)
+	}
+	// Close ok
+	defer func() {
+		if err := tearDownBoltDB(c.DB); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	// Save our job
+	if err := c.SaveJob(j); err != nil {
+		t.Error("Error saving job on database")
+	}
+
+	// Create a buch of results
+	for i := 1; i <= totalResults; i++ {
+		r := &job.Result{
+			Job:    j,
+			Out:    fmt.Sprintf("Out %d", i),
+			Status: job.ResultOK,
+			Start:  time.Now().UTC(),
+			Finish: time.Now().UTC(),
+		}
+		if err := c.SaveResult(r); err != nil {
+			t.Error("Error saving result on database")
+		}
+
+		results[i-1] = r
+	}
+
+	// Delete one by one and check is correct
+	for _, r := range results {
+		// Check in datbase
+		if _, err := c.GetResult(j, r.ID); err != nil {
+			t.Errorf("Result should exists, got error: %v", err)
+		}
+
+		// Delete
+		if err := c.DeleteResult(r); err != nil {
+			t.Errorf("Result should be deleted, got error: %v", err)
+		}
+
+		// Check not in database
+		if _, err := c.GetResult(j, r.ID); err == nil {
+			t.Errorf("Result shouldn't exists, should got error, didn't")
+		}
+	}
+}
