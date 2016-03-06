@@ -169,6 +169,12 @@ func TestBoltDBGetJobs(t *testing.T) {
 		wantError  bool
 	}{
 		{
+			givenLow:   0,
+			givenHigh:  0,
+			wantLength: totalJobs,
+			wantError:  false,
+		},
+		{
 			givenLow:   totalJobs - 20,
 			givenHigh:  totalJobs - 10,
 			wantLength: 10,
@@ -528,7 +534,7 @@ func TestBoltDBGetResult(t *testing.T) {
 	}
 }
 
-func TestBoltDBGetResultss(t *testing.T) {
+func TestBoltDBGetResults(t *testing.T) {
 	boltPath := randomPath()
 	totalResults := 50
 	u, _ := url.Parse("http://khronos.io/job1")
@@ -578,6 +584,12 @@ func TestBoltDBGetResultss(t *testing.T) {
 		wantLength int
 		wantError  bool
 	}{
+		{
+			givenLow:   0,
+			givenHigh:  0,
+			wantLength: totalResults,
+			wantError:  false,
+		},
 		{
 			givenLow:   totalResults - 20,
 			givenHigh:  totalResults - 10,
