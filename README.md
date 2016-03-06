@@ -32,6 +32,19 @@ for example:
 
     $ KHRONOS_CONFIG_FILE="`pwd`/environment/dev/settings.json" go run ./cmd/khronosd/main.go
 
+### Run tests
+To run all the tests using ci settings.
+
+    make --ignore-errors test
+
+Or you can do it manually inside the container
+
+    KHRONOS_CONFIG_FILE="`pwd`/environment/ci/settings.json" go test `glide nv` -v
+
+Or for specific tests, for example all boltdb tests:
+
+    KHRONOS_CONFIG_FILE="`pwd`/environment/ci/settings.json" go test `glide nv` -run "TestBoltDB*" -v
+
 ### Others
 
 There are other comands like `make test` to run the tests, `make app_build` to

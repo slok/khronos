@@ -4,8 +4,10 @@ package main
 
 import (
 	"os"
+	"time"
 
 	"github.com/NYTimes/gizmo/server"
+	"github.com/Sirupsen/logrus"
 
 	"github.com/slok/khronos/config"
 	"github.com/slok/khronos/schedule"
@@ -21,8 +23,22 @@ func main() {
 	cfg := config.NewAppConfig(configFile)
 	server.Init("khronos", cfg.Server)
 
+	var stCli storage.Client
+	var err error
+
 	// Create the storage client
-	stCli := storage.NewDummy()
+	switch cfg.StorageEngine {
+	case "dummy":
+		stCli = storage.NewDummy()
+	case "boltdb":
+		to := time.Duration(cfg.BoltDBTimeoutSeconds)
+		stCli, err = storage.NewBoltDB(cfg.BoltDBPath, to)
+		if err != nil {
+			logrus.Fatalf("Error opening boltdb database: %v", err)
+		}
+	default:
+		logrus.Fatal("Wrong Storage engine")
+	}
 
 	// Create scheduler and start
 	cr := schedule.NewDummyCron(cfg, stCli, 0, "OK")
@@ -33,14 +49,14 @@ func main() {
 	khronosService := service.NewKhronosService(cfg, stCli, cr)
 
 	// Register the service on the server
-	err := server.Register(khronosService)
+	err = server.Register(khronosService)
 	if err != nil {
-		server.Log.Fatal("unable to register service: ", err)
+		logrus.Fatalf("unable to register service: %v", err)
 	}
 
 	// Serve our service
 	err = server.Run()
 	if err != nil {
-		server.Log.Fatal("server encountered a fatal error: ", err)
+		logrus.Fatalf("server encountered a fatal error: %v", err)
 	}
 }

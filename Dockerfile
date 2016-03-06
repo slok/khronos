@@ -1,4 +1,4 @@
-FROM golang:1.5.3
+FROM golang:1.6
 MAINTAINER Xabier Larrakoetxea <slok69@gmail.com>
 
 # Create the user/group for the running stuff
@@ -13,9 +13,6 @@ RUN go get github.com/Masterminds/glide
 RUN go get golang.org/x/tools/cmd/cover
 RUN go get github.com/axw/gocov/gocov
 RUN go get github.com/mailgun/godebug
-
-
-ENV GO15VENDOREXPERIMENT=1
 
 
 WORKDIR /go/src/github.com/slok/khronos

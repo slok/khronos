@@ -95,6 +95,8 @@ func NewBoltDB(path string, timeout time.Duration) (*BoltDB, error) {
 		Timeout:  timeout,
 		DB:       db,
 	}
+
+	logrus.Debug("New Boltdb storage client created")
 	return c, nil
 }
 
