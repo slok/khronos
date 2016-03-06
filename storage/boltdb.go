@@ -113,8 +113,8 @@ func (c *BoltDB) GetJobs(low, high int) ([]*job.Job, error) {
 	low++
 	high++
 
-	// if low and high the same then return empty slice
-	if low == high {
+	// if low and high the same then return empty slice (not when asking for all)
+	if low != 1 && low == high {
 		return jobs, nil
 	}
 
@@ -249,8 +249,8 @@ func (c *BoltDB) GetResults(j *job.Job, low, high int) ([]*job.Result, error) {
 	low++
 	high++
 
-	// if low and high the same then return empty slice
-	if low == high {
+	// if low and high the same then return empty slice (not when asking for all)
+	if low != 1 && low == high {
 		return res, nil
 	}
 
