@@ -5,13 +5,6 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
-const (
-	// DefaultResultBufferLen is the default length that the result buffer will have if no settings are set
-	DefaultResultBufferLen = 100
-	// DefaultStorageEngine is the default storage engine used to store the data
-	DefaultStorageEngine = "boltdb"
-)
-
 var (
 	// ValidStorageEngines contains the selectable storage engines
 	ValidStorageEngines = []string{"dummy", "boltdb"}
@@ -20,10 +13,10 @@ var (
 // Khronos holds the configuration of the main application
 type Khronos struct {
 	// ResultBufferLen is default result channel length
-	ResultBufferLen int `envconfig:"KHRONOS_RESULT_BUFFER_LEN"`
+	ResultBufferLen int `envconfig:"KHRONOS_RESULT_BUFFER_LEN" default:"100"`
 
 	// StorageEngine is the engine used to store the data
-	StorageEngine string `envconfig:"KHRONOS_STORAGE_ENGINE"`
+	StorageEngine string `envconfig:"KHRONOS_STORAGE_ENGINE" default:"boltdb"`
 }
 
 // LoadKhronosConfig Loads the configuration for the application
@@ -35,15 +28,7 @@ func (k *Khronos) LoadKhronosConfig(cfg *AppConfig) {
 
 	config.LoadEnvConfig(k)
 
-	if k.ResultBufferLen == 0 {
-		k.ResultBufferLen = DefaultResultBufferLen
-	}
-
 	// Check storage Engine
-	if k.StorageEngine == "" {
-		k.StorageEngine = DefaultStorageEngine
-	}
-
 	valid := false
 	for _, v := range ValidStorageEngines {
 		if v == k.StorageEngine {

@@ -1,0 +1,6 @@
+app:
+  container_name: khronos-ci
+  hostname: khronos-ci
+  command: /go/src/github.com/slok/khronos/environment/ci/run.sh
+  environment:
+    KHRONOS_CONFIG_FILE: "/go/src/github.com/slok/khronos/environment/ci/settings.json"

@@ -25,6 +25,7 @@ func NewAppConfig(configFile string) *AppConfig {
 	cfg := &AppConfig{
 		ConfigFilePath: configFile,
 		Server:         &config.Server{},
+		BoltDB:         &BoltDB{},
 		Khronos:        &Khronos{},
 	}
 

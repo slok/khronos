@@ -5,10 +5,9 @@ PROJECT_NAME=khronos
 
 # Do not touch
 DC_BIN=docker-compose
-DOCKER_COMPOSE_CMD_DEV=${DC_BIN} -p ${PROJECT_NAME} -f ../docker-compose.yml -f ./docker-compose.dev.yml
-
-
-TEST_PACKAGES=./service ./config ./service/validate ./schedule ./storage
+DOCKER_COMPOSER_CMD_MAIN=${DC_BIN} -p ${PROJECT_NAME} -f ../docker-compose.yml
+DOCKER_COMPOSE_CMD_DEV=${DOCKER_COMPOSER_CMD_MAIN} -f ./docker-compose.dev.yml
+DOCKER_COMPOSE_CMD_CI=${DOCKER_COMPOSER_CMD_MAIN} -f ./docker-compose.ci.yml
 
 default:build
 
@@ -31,6 +30,11 @@ rm: stop
 docker_build:
 	  cd environment/dev && \
 		${DOCKER_COMPOSE_CMD_DEV} build
+
+# Builds docker images on ci
+docker_build_ci:
+	  cd environment/ci && \
+		${DOCKER_COMPOSE_CMD_CI} build
 
 # Builds all the ecosystem
 build: docker_build
@@ -55,10 +59,16 @@ dev: docker_build
 		${DOCKER_COMPOSE_CMD_DEV} rm -f
 
 # Runs test suite
-test: docker_build
-	cd environment/dev && \
-		${DOCKER_COMPOSE_CMD_DEV} run --rm app /bin/bash -ci "./environment/dev/build.sh;go test ${TEST_PACKAGES} -v"; \
-		${DOCKER_COMPOSE_CMD_DEV} rm -f
+test: test_ci test_ci_clean
+
+test_ci: docker_build_ci
+	cd environment/ci && \
+		${DOCKER_COMPOSE_CMD_CI} run --rm app
+
+test_ci_clean:docker_build_ci
+	cd environment/ci && \
+		${DOCKER_COMPOSE_CMD_CI} stop; \
+		${DOCKER_COMPOSE_CMD_CI} rm -f
 
 # Loads a shell without binded ports
 shell: docker_build
@@ -72,10 +82,3 @@ up: docker_build
 
 authors:
 	-git log --format='%aN <%aE>' | LC_ALL=C.UTF-8 sort -uf > ./AUTHORS
-
-ci_test:
-	KHRONOS_CONFIG_FILE="`pwd`/environment/ci/settings.json" go test ${TEST_PACKAGES} -v
-
-ci_bootstrap:
-	go get github.com/Masterminds/glide
-	glide install
