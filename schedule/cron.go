@@ -31,6 +31,9 @@ type Cron struct {
 	started    bool
 	startMutex *sync.Mutex
 
+	// loaded flag is up when stored jobs from database are loaded
+	storedlJobsLoaded bool
+
 	// application context
 	cfg *config.AppConfig
 
@@ -41,13 +44,14 @@ type Cron struct {
 // NewSimpleCron creates a new instance of a cron initialized with the basic functionality
 func NewSimpleCron(cfg *config.AppConfig, storage storage.Client) *Cron {
 	return &Cron{
-		runner:     cron.New(),
-		scheduler:  SimpleRun(),
-		Results:    make(chan *job.Result, cfg.ResultBufferLen),
-		started:    false,
-		startMutex: &sync.Mutex{},
-		cfg:        cfg,
-		storage:    storage,
+		runner:            cron.New(),
+		scheduler:         SimpleRun(),
+		Results:           nil, // Create on startResultProcesser and close on stop
+		started:           false,
+		startMutex:        &sync.Mutex{},
+		storedlJobsLoaded: false,
+		cfg:               cfg,
+		storage:           storage,
 	}
 }
 
@@ -55,13 +59,14 @@ func NewSimpleCron(cfg *config.AppConfig, storage storage.Client) *Cron {
 // (do nothing) when the time comes
 func NewDummyCron(cfg *config.AppConfig, storage storage.Client, exitStatus int, out string) *Cron {
 	return &Cron{
-		runner:     cron.New(),
-		scheduler:  DummyRun(exitStatus, out),
-		Results:    make(chan *job.Result, cfg.ResultBufferLen),
-		started:    false,
-		startMutex: &sync.Mutex{},
-		cfg:        cfg,
-		storage:    storage,
+		runner:            cron.New(),
+		scheduler:         DummyRun(exitStatus, out),
+		Results:           nil, // Create on startResultProcesser and close on stop
+		started:           false,
+		startMutex:        &sync.Mutex{},
+		storedlJobsLoaded: false,
+		cfg:               cfg,
+		storage:           storage,
 	}
 }
 
@@ -88,6 +93,10 @@ func (c *Cron) startResultProcesser(f func(*job.Result)) error {
 	}
 
 	logrus.Info("Result processing started...")
+
+	// Create results channel (will be closed on stop)
+	c.Results = make(chan *job.Result, c.cfg.ResultBufferLen)
+
 	// Start job runner in a gouroutine. This anom func will execute the received
 	// func for each result
 	go func() {
@@ -98,8 +107,10 @@ func (c *Cron) startResultProcesser(f func(*job.Result)) error {
 	return nil
 }
 
-// Start starts cron job scheduler and the result listener. f parameter is the function
-// that will be executed for each result, could be nil.
+// Start starts cron job scheduler
+// starts the result listener.
+// loads stored jobs from database if DontScheduleJobsStart option is disabled
+// f parameter is the function that will be executed for each result, could be nil.
 func (c *Cron) Start(f func(*job.Result)) error {
 	c.startMutex.Lock()
 	defer c.startMutex.Unlock()
@@ -115,6 +126,15 @@ func (c *Cron) Start(f func(*job.Result)) error {
 	if err := c.startResultProcesser(f); err != nil {
 		return err
 	}
+
+	// Register database cron jobs
+	if !c.cfg.DontScheduleJobsStart && !c.storedlJobsLoaded {
+		if err := c.registerStoredCronJobs(); err != nil {
+			return err
+		}
+		c.storedlJobsLoaded = true
+	}
+
 	c.started = true
 	return nil
 }
@@ -148,4 +168,22 @@ func (c *Cron) RegisterCronJob(j *job.Job) {
 
 	// Add job to  cron
 	c.runner.AddFunc(j.When, jobExec)
+}
+
+// registerStoredCronJobs registers all the stored cron jobs
+func (c *Cron) registerStoredCronJobs() error {
+	logrus.Debug("Registering stored jobs")
+
+	// Get storage jobs
+	js, err := c.storage.GetJobs(0, 0)
+	if err != nil {
+		return err
+	}
+
+	// Register all the jobs
+	for _, j := range js {
+		// TODO: Register only active ones (check or retrieve only active ones from database?)
+		c.RegisterCronJob(j)
+	}
+	return nil
 }

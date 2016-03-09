@@ -62,7 +62,7 @@ func TestRegisterCronJob(t *testing.T) {
 	}
 }
 
-func TestRegisterCronJobStore(t *testing.T) {
+func TestRegisterCronJobStoreResults(t *testing.T) {
 	// Create configuration, storage and test vars
 	cfg := config.NewAppConfig(os.Getenv(config.KhronosConfigFileKey))
 	stCli := storage.NewDummy()
@@ -161,4 +161,64 @@ func TestStopCronEngine(t *testing.T) {
 		t.Errorf("Stopping after stopping should get an error")
 	}
 
+}
+
+func TestRegisterStoredCronJobsOnStart(t *testing.T) {
+	// Create configuration, storage and test vars
+	cfg := config.NewAppConfig(os.Getenv(config.KhronosConfigFileKey))
+	cfg.DontScheduleJobsStart = false
+
+	stCli := storage.NewDummy()
+
+	wantExitStatus := job.ResultOK
+	wantOut := fmt.Sprintf("Result: %d", rand.Int())
+	iterations := 3
+
+	// Create jobs and set on dummy store
+	u, _ := url.Parse("http://test.org/test")
+	js := map[string]*job.Job{
+		"job:1": &job.Job{ID: 1, URL: u, When: "@every 1s", Active: true},
+		"job:2": &job.Job{ID: 2, URL: u, When: "@every 1s", Active: true},
+	}
+	stCli.Jobs = js
+	stCli.JobCounter = len(js)
+
+	// Create our cron engine and start
+	dCron := NewDummyCron(cfg, stCli, wantExitStatus, wantOut)
+
+	// start our cron (this will load the crons)
+	dCron.Start(nil)
+
+	// wait the number of iterations
+	time.Sleep(time.Duration(iterations) * time.Second)
+
+	// stop and check iterations where ok
+	dCron.Stop()
+
+	// Check the number of jobs registered
+	if len(stCli.Results) != len(js) {
+		t.Errorf("Wrong number of registered stored jobs; expected: %d; got: %d", len(js), len(stCli.Results))
+	}
+
+	// Check the number of jobs executed (checking result) for each stored job loaded on startup
+	for k, v := range stCli.Results {
+		if len(v) != iterations {
+			t.Errorf("Wrong result list for %s job; expected: %d; got: %d", k, iterations, len(v))
+		}
+	}
+
+	// Start check of register stored jobs only once per cron engine instance
+	// Flush results
+	stCli.Results = map[string]map[string]*job.Result{}
+	stCli.ResultsCounter = map[string]int{}
+
+	// Start again
+	dCron.Start(nil)
+	time.Sleep(time.Duration(iterations) * time.Second)
+	dCron.Stop()
+
+	// Check the number of jobs registered (should be the same as the first cron engien start)
+	if len(stCli.Results) != len(js) {
+		t.Errorf("Wrong number of registered stored jobs after starting the cron engine a second time; expected: %d; got: %d", len(js), len(stCli.Results))
+	}
 }
