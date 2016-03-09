@@ -46,7 +46,7 @@ func NewSimpleCron(cfg *config.AppConfig, storage storage.Client) *Cron {
 	return &Cron{
 		runner:            cron.New(),
 		scheduler:         SimpleRun(),
-		Results:           make(chan *job.Result, cfg.ResultBufferLen),
+		Results:           nil, // Create on startResultProcesser and close on stop
 		started:           false,
 		startMutex:        &sync.Mutex{},
 		storedlJobsLoaded: false,
@@ -61,7 +61,7 @@ func NewDummyCron(cfg *config.AppConfig, storage storage.Client, exitStatus int,
 	return &Cron{
 		runner:            cron.New(),
 		scheduler:         DummyRun(exitStatus, out),
-		Results:           make(chan *job.Result, cfg.ResultBufferLen),
+		Results:           nil, // Create on startResultProcesser and close on stop
 		started:           false,
 		startMutex:        &sync.Mutex{},
 		storedlJobsLoaded: false,
@@ -93,6 +93,10 @@ func (c *Cron) startResultProcesser(f func(*job.Result)) error {
 	}
 
 	logrus.Info("Result processing started...")
+
+	// Create results channel (will be closed on stop)
+	c.Results = make(chan *job.Result, c.cfg.ResultBufferLen)
+
 	// Start job runner in a gouroutine. This anom func will execute the received
 	// func for each result
 	go func() {
