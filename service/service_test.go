@@ -503,3 +503,72 @@ func TestGetResult(t *testing.T) {
 
 	}
 }
+
+func TestDeleteResult(t *testing.T) {
+	j := &job.Job{ID: 1, Name: "test1", Description: "test1", When: "@daily", Active: true, URL: &url.URL{}}
+	testStorageClient := storage.NewDummy()
+	testCronEngine := schedule.NewDummyCron(testConfig, testStorageClient, 0, "OK")
+	testCronEngine.Start(nil)
+
+	// Testing data
+	tests := []struct {
+		givenURI          string
+		givenResults      map[string]map[string]*job.Result
+		givenJobs         map[string]*job.Job
+		wantCode          int
+		wantDeletedResult string
+	}{
+		{
+			givenURI:     "/api/v1/jobs/1/results/1",
+			givenResults: make(map[string]map[string]*job.Result),
+			givenJobs:    make(map[string]*job.Job),
+			wantCode:     http.StatusInternalServerError,
+		},
+		{
+			givenURI:     "/api/v1/jobs/1/results/1",
+			givenResults: make(map[string]map[string]*job.Result),
+			givenJobs:    map[string]*job.Job{"job:1": j},
+			wantCode:     http.StatusNoContent,
+		},
+		{
+			givenURI: "/api/v1/jobs/1/results/1",
+			givenResults: map[string]map[string]*job.Result{
+				"job:1:results": map[string]*job.Result{
+					"result:1": &job.Result{ID: 1, Job: j, Out: "test1", Status: job.ResultOK, Start: time.Now().UTC(), Finish: time.Now().UTC()},
+				},
+			},
+			givenJobs:         map[string]*job.Job{"job:1": j},
+			wantCode:          http.StatusNoContent,
+			wantDeletedResult: "result:1",
+		},
+	}
+
+	for _, test := range tests {
+		// Set our dummy 'database' on the storage client
+		testStorageClient.Results = test.givenResults
+		testStorageClient.Jobs = test.givenJobs
+
+		// Create a testing server
+		testServer := server.NewSimpleServer(nil)
+
+		// Register our service on the server (we don't need configuration for this service)
+		testServer.Register(&KhronosService{
+			Config:  testConfig,
+			Storage: testStorageClient,
+			Cron:    testCronEngine,
+		})
+
+		// Create request and a test recorder
+		r, _ := http.NewRequest("DELETE", test.givenURI, nil)
+		w := httptest.NewRecorder()
+		testServer.ServeHTTP(w, r)
+		if w.Code != test.wantCode {
+			t.Errorf("Expected response code '%d'. Got '%d' instead ", test.wantCode, w.Code)
+		}
+
+		rs, _ := testStorageClient.Results["job:1:results"]
+		if _, ok := rs[test.wantDeletedResult]; ok {
+			t.Error("Result should be deleted; present on database")
+		}
+	}
+}
