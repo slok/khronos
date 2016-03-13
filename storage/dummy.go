@@ -120,9 +120,9 @@ func (c *Dummy) DeleteJob(j *job.Job) error {
 	defer c.jobsMutex.Unlock()
 
 	key := fmt.Sprintf(jobKeyFmt, j.ID)
-
 	delete(c.Jobs, key)
-	// Don't return error if the job doens't exists
+	delete(c.Results, fmt.Sprintf(jobResultsKeyFmt, j.ID))
+	// Don't return error if the job doesn't exists
 
 	return nil
 }
