@@ -15,6 +15,8 @@ import (
 const (
 	errorRetrievingAllJobsMsg    = "Error retrieving all jobs"
 	errorCreatingJobMsg          = "Error creating job"
+	errorDeletingJobMsg          = "Error deleting job"
+	errorDeletingResultMsg       = "Error deleting result"
 	errorRetrievingJobMsg        = "Error retrieving job"
 	errorRetrievingJobResultsMsg = "Error retrieving job results"
 	wrongParamsMsg               = "Wrong params"
@@ -109,6 +111,33 @@ func (s *KhronosService) GetJob(r *http.Request) (int, interface{}, error) {
 	return http.StatusOK, j, nil
 }
 
+// DeleteJob Deletes a job and its results
+func (s *KhronosService) DeleteJob(r *http.Request) (int, interface{}, error) {
+	// Get resul ID
+	jid, _ := mux.Vars(r)["id"]
+	logrus.Debug("Calling DeleteJob with id: %s", jid)
+
+	jobID, err := strconv.Atoi(jid)
+	if err != nil {
+		logrus.Errorf("error getting job ID: %v", err)
+		return http.StatusInternalServerError, wrongParamsMsg, nil
+	}
+
+	j, err := s.Storage.GetJob(jobID)
+	// No job, we are ok
+	if err != nil {
+		logrus.Errorf("Error retrieving job: %v", err)
+		return http.StatusNoContent, nil, nil
+	}
+
+	if err := s.Storage.DeleteJob(j); err != nil {
+		logrus.Errorf("error deleting job ID: %v", err)
+		return http.StatusInternalServerError, errorDeletingJobMsg, nil
+	}
+
+	return http.StatusNoContent, nil, nil
+}
+
 // GetResults returns the jobs from an specific job
 func (s *KhronosService) GetResults(r *http.Request) (int, interface{}, error) {
 	// Get job ID
@@ -124,8 +153,7 @@ func (s *KhronosService) GetResults(r *http.Request) (int, interface{}, error) {
 	}
 	j, err := s.Storage.GetJob(jobID)
 	if err != nil {
-		logrus.Errorf("Error retrieving Job: %v", err)
-		return http.StatusInternalServerError, errorRetrievingJobMsg, nil
+		return http.StatusNoContent, nil, nil
 	}
 
 	// Get job results
@@ -168,4 +196,42 @@ func (s *KhronosService) GetResult(r *http.Request) (int, interface{}, error) {
 	}
 
 	return http.StatusOK, result, nil
+}
+
+// DeleteResult deletes a result
+func (s *KhronosService) DeleteResult(r *http.Request) (int, interface{}, error) {
+	// Get resul ID
+	jid, _ := mux.Vars(r)["jobID"]
+	jobID, err := strconv.Atoi(jid)
+	if err != nil {
+		logrus.Errorf("error getting job ID: %v", err)
+		return http.StatusInternalServerError, wrongParamsMsg, nil
+	}
+
+	rid, _ := mux.Vars(r)["resultID"]
+	resultID, err := strconv.Atoi(rid)
+	if err != nil {
+		logrus.Errorf("error getting result ID: %v", err)
+		return http.StatusInternalServerError, wrongParamsMsg, nil
+	}
+	logrus.Debugf("Calling DeleteResult with id: %d from job '%d'", resultID, jobID)
+
+	j, err := s.Storage.GetJob(jobID)
+	if err != nil {
+		logrus.Errorf("Error deleting Job: %v", err)
+		return http.StatusInternalServerError, errorDeletingResultMsg, nil
+	}
+	result, err := s.Storage.GetResult(j, resultID)
+	// If no result then is ok
+	if err != nil {
+		logrus.Errorf("Error deleting job result: %v", err)
+		return http.StatusNoContent, result, nil
+	}
+
+	if err := s.Storage.DeleteResult(result); err != nil {
+		logrus.Errorf("Error deleting job result: %v", err)
+		return http.StatusInternalServerError, errorDeletingResultMsg, nil
+	}
+
+	return http.StatusNoContent, result, nil
 }

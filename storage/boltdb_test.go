@@ -327,6 +327,7 @@ func TestBoltDBGetJob(t *testing.T) {
 func TestBoltDBDeleteJob(t *testing.T) {
 	boltPath := randomPath()
 	totalJobs := 5
+	totalResults := 10
 	jobs := make([]*job.Job, totalJobs, totalJobs)
 
 	// Create a new boltdb connection
@@ -356,13 +357,29 @@ func TestBoltDBDeleteJob(t *testing.T) {
 			t.Error("Error saving job on database")
 		}
 		jobs[i-1] = j
+
+		// Create a bunch of results for this job
+		for ir := 1; ir <= totalResults; ir++ {
+			r := &job.Result{
+				Job:    j,
+				Out:    "Linux khronos-dev 4.4.1-2-ARCH #1 SMP PREEMPT Wed Feb 3 13:12:33 UTC 2016 x86_64 GNU/Linux",
+				Status: job.ResultOK,
+				Start:  time.Now().UTC(),
+				Finish: time.Now().UTC(),
+			}
+			c.SaveResult(r)
+		}
 	}
 
 	// Delete one by one and check is correct
 	for _, j := range jobs {
-		// Check in datbase
+		// Check in database
 		if _, err := c.GetJob(j.ID); err != nil {
 			t.Errorf("Job should exists, got error: %v", err)
+		}
+
+		if rs, err := c.GetResults(j, 0, 0); err != nil || len(rs) != totalResults {
+			t.Errorf("Job results should exists,\n expected length %d; got %d \nerror: %v", totalResults, len(rs), err)
 		}
 
 		// Delete
@@ -374,6 +391,10 @@ func TestBoltDBDeleteJob(t *testing.T) {
 		if _, err := c.GetJob(j.ID); err == nil {
 			t.Errorf("Job shouldn't exists, should got error, didn't")
 		}
+		if rs, err := c.GetResults(j, 0, 0); err != nil || len(rs) != 0 {
+			t.Errorf("Job results should't exists,\n expected length %d; got %d \nerror: %v", 0, len(rs), err)
+		}
+
 	}
 }
 

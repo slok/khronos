@@ -225,10 +225,18 @@ func (c *BoltDB) SaveJob(j *job.Job) error {
 	return nil
 }
 
-// DeleteJob deletes an HTTP job from boltdb, doesn't return error if job doesn't exists
+// DeleteJob deletes an HTTP job and all its results from boltdb, doesn't return error if job doesn't exists
 func (c *BoltDB) DeleteJob(j *job.Job) error {
 	err := c.DB.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket([]byte(jobsBucket)).Delete(idToByte(j.ID))
+		// Delete job
+		tx.Bucket([]byte(jobsBucket)).Delete(idToByte(j.ID))
+
+		// Delete all job results
+		resB := tx.Bucket([]byte(resultsBucket))
+		jobresKey := fmt.Sprintf(jobResultsBuckets, string(idToByte(j.ID)))
+		// Ignore error if bucket doesn't exists
+		resB.DeleteBucket([]byte(jobresKey))
+		return nil
 	})
 
 	if err != nil {
@@ -266,6 +274,11 @@ func (c *BoltDB) GetResults(j *job.Job, low, high int) ([]*job.Result, error) {
 		// Get results bucket
 		rbKey := fmt.Sprintf(jobResultsBuckets, string(idToByte(j.ID)))
 		rB := rsB.Bucket([]byte(rbKey))
+
+		// If no bucket, no results
+		if rB == nil {
+			return nil
+		}
 
 		c := rB.Cursor()
 
@@ -319,6 +332,9 @@ func (c *BoltDB) GetResult(j *job.Job, id int) (*job.Result, error) {
 		// Get results bucket
 		rbKey := fmt.Sprintf(jobResultsBuckets, string(idToByte(j.ID)))
 		rB := rsB.Bucket([]byte(rbKey))
+		if rB == nil {
+			return errors.New("result does not exists")
+		}
 
 		// Get result
 		res := rB.Get(idToByte(id))
