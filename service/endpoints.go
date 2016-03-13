@@ -15,8 +15,8 @@ import (
 const (
 	errorRetrievingAllJobsMsg    = "Error retrieving all jobs"
 	errorCreatingJobMsg          = "Error creating job"
-	errorDeletingJobMsg          = "Error Deleting job"
-	errorDeletingResultMsg       = "Error Deleting result"
+	errorDeletingJobMsg          = "Error deleting job"
+	errorDeletingResultMsg       = "Error deleting result"
 	errorRetrievingJobMsg        = "Error retrieving job"
 	errorRetrievingJobResultsMsg = "Error retrieving job results"
 	wrongParamsMsg               = "Wrong params"
