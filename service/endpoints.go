@@ -32,6 +32,17 @@ func (s *KhronosService) Ping(r *http.Request) (int, interface{}, error) {
 func (s *KhronosService) GetJobs(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Calling GetAllJobs endpoint")
 
+	// Page will set the offset
+	p := r.URL.Query().Get("page")
+	var err error
+	page := 1
+	if p != "" {
+		if page, err = strconv.Atoi(p); err != nil {
+			logrus.Errorf("error getting page querystring param: %v", err)
+			return http.StatusInternalServerError, wrongParamsMsg, nil
+		}
+	}
+
 	jobs, err := s.Storage.GetJobs(0, 0)
 
 	if err != nil {
@@ -151,6 +162,17 @@ func (s *KhronosService) GetResults(r *http.Request) (int, interface{}, error) {
 		logrus.Errorf("error getting job ID: %v", err)
 		return http.StatusInternalServerError, wrongParamsMsg, nil
 	}
+
+	// Page will set the offset
+	p := r.URL.Query().Get("page")
+	page := 1
+	if p != "" {
+		if page, err = strconv.Atoi(p); err != nil {
+			logrus.Errorf("error getting page querystring param: %v", err)
+			return http.StatusInternalServerError, wrongParamsMsg, nil
+		}
+	}
+
 	j, err := s.Storage.GetJob(jobID)
 	if err != nil {
 		return http.StatusNoContent, nil, nil
