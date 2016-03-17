@@ -25,6 +25,9 @@ type Client interface {
 	// DeleteJob deletes a job
 	DeleteJob(j *job.Job) error
 
+	// JobsLength returns the number of jobs stored
+	JobsLength() int
+
 	// Result actions
 	// GetResults returns an slice of results from a job; The low parmeter will be the
 	// first result and the high will be the next one to the last result that will be
@@ -40,4 +43,7 @@ type Client interface {
 
 	// DeleteResult deletes a result
 	DeleteResult(r *job.Result) error
+
+	// ResultsLength returns the number of results (of a job) stored
+	ResultsLength(j *job.Job) int
 }

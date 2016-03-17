@@ -398,6 +398,60 @@ func TestBoltDBDeleteJob(t *testing.T) {
 	}
 }
 
+func TestBoltDBJobsLength(t *testing.T) {
+	boltPath := randomPath()
+	totalJobs := 50
+
+	// Create a new boltdb connection
+	c, err := NewBoltDB(boltPath, 2*time.Second)
+	if err != nil {
+		t.Errorf("Error creating bolt connection: %v", err)
+	}
+	// Close ok
+	defer func() {
+		if err := tearDownBoltDB(c.DB); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	// Empty databse, length is 0
+	jobLen := c.JobsLength()
+	if jobLen != 0 {
+		t.Errorf("Empty database should return 0 size for stored jobs; got %d", jobLen)
+	}
+
+	// Save some jobs
+	for i := 1; i <= totalJobs; i++ {
+		u, _ := url.Parse(fmt.Sprintf("http://khronos.io/job%d", i))
+		j := &job.Job{
+			Name:        fmt.Sprintf("job%d", i),
+			Description: fmt.Sprintf("job %d", i),
+			When:        fmt.Sprintf("@every %dm", i),
+			Active:      true,
+			URL:         u,
+		}
+		err := c.SaveJob(j)
+		if err != nil {
+			t.Error("Error saving job on database")
+		}
+	}
+	// Check saved jobs ok
+	jobLen = c.JobsLength()
+	if jobLen != totalJobs {
+		t.Errorf("Wrong job length, expected: %d;got %d", totalJobs, jobLen)
+	}
+
+	// Check while deleting
+	for i := totalJobs; i > 0; i-- {
+		j, _ := c.GetJob(i)
+		c.DeleteJob(j)
+		jobLen = c.JobsLength()
+		if jobLen != i-1 {
+			t.Errorf("Wrong job length, expected: %d;got %d", i-1, jobLen)
+		}
+	}
+}
+
 func TestBoltDBSaveResultJob(t *testing.T) {
 	boltPath := randomPath()
 	// Create a new boltdb connection
@@ -752,4 +806,68 @@ func TestBoltDBDeleteResult(t *testing.T) {
 			t.Errorf("Result shouldn't exists, should got error, didn't")
 		}
 	}
+}
+
+func TestBoltDBResultsLength(t *testing.T) {
+	boltPath := randomPath()
+	totalResults := 50
+
+	// Create a new boltdb connection
+	c, err := NewBoltDB(boltPath, 2*time.Second)
+	if err != nil {
+		t.Errorf("Error creating bolt connection: %v", err)
+	}
+	// Close ok
+	defer func() {
+		if err := tearDownBoltDB(c.DB); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	u, _ := url.Parse("http://khronos.io/job1")
+	j := &job.Job{
+		Name:        "job1",
+		Description: "Job 1",
+		When:        "@every 1m",
+		Active:      true,
+		URL:         u,
+	}
+	c.SaveJob(j)
+
+	// Empty databse, length is 0
+	resLen := c.ResultsLength(j)
+	if resLen != 0 {
+		t.Errorf("Empty database should return 0 size for stored results; got %d", resLen)
+	}
+
+	// Save some results
+	for i := 1; i <= totalResults; i++ {
+		r := &job.Result{
+			Job:    j,
+			Out:    fmt.Sprintf("Out %d", i),
+			Status: job.ResultOK,
+			Start:  time.Now().UTC(),
+			Finish: time.Now().UTC(),
+		}
+		if err := c.SaveResult(r); err != nil {
+			t.Error("Error saving result on database")
+		}
+	}
+
+	// Check saved results ok
+	resLen = c.ResultsLength(j)
+	if resLen != totalResults {
+		t.Errorf("Wrong results length, expected: %d;got %d", totalResults, resLen)
+	}
+
+	// Check while deleting
+	for i := totalResults; i > 0; i-- {
+		r, _ := c.GetResult(j, i)
+		c.DeleteResult(r)
+		resLen = c.ResultsLength(j)
+		if resLen != i-1 {
+			t.Errorf("Wrong results length, expected: %d;got %d", i-1, resLen)
+		}
+	}
+
 }
