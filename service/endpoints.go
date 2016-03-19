@@ -198,17 +198,23 @@ func (s *KhronosService) GetResults(r *http.Request) (int, interface{}, error) {
 		return http.StatusInternalServerError, wrongParamsMsg, nil
 	}
 
-	// Page will set the offset
-	page := pageFromRequest(r)
-	fmt.Println(page)
-
 	j, err := s.Storage.GetJob(jobID)
 	if err != nil {
 		return http.StatusNoContent, nil, nil
 	}
 
+	// Page will set the offset
+	page := pageFromRequest(r)
+	length := s.Storage.ResultsLength(j)
+	start, end := s.offsetsFromPage(page, length)
+
+	// First check if need to query
+	if (start > length) || length == 0 {
+		return http.StatusOK, []struct{}{}, nil
+	}
+
 	// Get job results
-	results, err := s.Storage.GetResults(j, 0, 0)
+	results, err := s.Storage.GetResults(j, start, end)
 	if err != nil {
 		logrus.Errorf("Error retrieving job results: %v", err)
 		return http.StatusInternalServerError, errorRetrievingJobResultsMsg, nil

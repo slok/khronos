@@ -675,3 +675,116 @@ func TestDeleteResult(t *testing.T) {
 		}
 	}
 }
+
+func TestGetResultsPaginated(t *testing.T) {
+	results := map[string]map[string]*job.Result{
+		"job:1:results": map[string]*job.Result{},
+	}
+	totalResults := 54
+	pageSize := 7
+	testStorageClient := storage.NewDummy()
+	// Custom pagination
+	paginationTestConfig := config.NewAppConfig(os.Getenv(config.KhronosConfigFileKey))
+	paginationTestConfig.APIResourcesPerPage = pageSize
+	testCronEngine := schedule.NewDummyCron(paginationTestConfig, testStorageClient, 0, "OK")
+	testCronEngine.Start(nil)
+
+	// Create our custom dummy results database
+	j := &job.Job{ID: 1, Name: "test1", When: "@daily", Active: true, URL: &url.URL{}}
+	for i := 1; i <= totalResults; i++ {
+		v := &job.Result{ID: i, Job: j, Out: fmt.Sprintf("test%d", i), Status: job.ResultInternalError, Start: time.Now().UTC(), Finish: time.Now().UTC()}
+		k := fmt.Sprintf("result:%d", i)
+		results["job:1:results"][k] = v
+	}
+
+	// Testing data
+	tests := []struct {
+		givenURI      string
+		wantResultIDs []int
+	}{
+		{
+			givenURI:      "/api/v1/jobs/1/results",
+			wantResultIDs: []int{1, 2, 3, 4, 5, 6, 7},
+		},
+		{
+			givenURI:      "/api/v1/jobs/1/results?page=0",
+			wantResultIDs: []int{1, 2, 3, 4, 5, 6, 7},
+		},
+		{
+			givenURI:      "/api/v1/jobs/1/results?page=1",
+			wantResultIDs: []int{1, 2, 3, 4, 5, 6, 7},
+		},
+		{
+			givenURI:      "/api/v1/jobs/1/results?page=2",
+			wantResultIDs: []int{8, 9, 10, 11, 12, 13, 14},
+		},
+		{
+			givenURI:      "/api/v1/jobs/1/results?page=3",
+			wantResultIDs: []int{15, 16, 17, 18, 19, 20, 21},
+		},
+		{
+			givenURI:      "/api/v1/jobs/1/results?page=4",
+			wantResultIDs: []int{22, 23, 24, 25, 26, 27, 28},
+		},
+		{
+			givenURI:      "/api/v1/jobs/1/results?page=5",
+			wantResultIDs: []int{29, 30, 31, 32, 33, 34, 35},
+		},
+		{
+			givenURI:      "/api/v1/jobs/1/results?page=6",
+			wantResultIDs: []int{36, 37, 38, 39, 40, 41, 42},
+		},
+		{
+			givenURI:      "/api/v1/jobs/1/results?page=7",
+			wantResultIDs: []int{43, 44, 45, 46, 47, 48, 49},
+		},
+		{
+			givenURI:      "/api/v1/jobs/1/results?page=8",
+			wantResultIDs: []int{50, 51, 52, 53, 54},
+		},
+		{
+			givenURI:      "/api/v1/jobs/1/results?page=9",
+			wantResultIDs: []int{},
+		},
+	}
+
+	// Tests
+	for _, test := range tests {
+		// Set our dummy 'database' on the storage client
+		testStorageClient.Results = results
+		testStorageClient.Jobs = map[string]*job.Job{"job:1": j}
+
+		// Create a testing server
+		testServer := server.NewSimpleServer(nil)
+
+		// Register our service on the server (we don't need configuration for this service)
+		testServer.Register(&KhronosService{
+			Config:  paginationTestConfig,
+			Storage: testStorageClient,
+			Cron:    testCronEngine,
+		})
+
+		// Create request and a test recorder
+		r, _ := http.NewRequest("GET", test.givenURI, nil)
+		w := httptest.NewRecorder()
+		testServer.ServeHTTP(w, r)
+
+		var got []*job.Result
+		err := json.NewDecoder(w.Body).Decode(&got)
+		if err != nil {
+			t.Error(err)
+		}
+
+		// Check length
+		if len(got) != len(test.wantResultIDs) {
+			t.Errorf("Expected length '%d'. Got '%d' instead ", len(test.wantResultIDs), len(got))
+		}
+
+		// Check IDs ok (should be in order)
+		for k, i := range test.wantResultIDs {
+			if got[k].ID != i {
+				t.Errorf("Expected result id '%d'. Got '%d' instead ", i, got[k].ID)
+			}
+		}
+	}
+}
