@@ -249,6 +249,28 @@ func (c *BoltDB) DeleteJob(j *job.Job) error {
 	return nil
 }
 
+// JobsLength returns the number of jobs stored on boltdb
+func (c *BoltDB) JobsLength() int {
+	var size int
+	err := c.DB.View(func(tx *bolt.Tx) error {
+		// Get job from job bucket
+		b := tx.Bucket([]byte(jobsBucket))
+		if b == nil {
+			return errors.New("No jobs bucket present")
+		}
+		// Number of keys on boltdb
+		size = b.Stats().KeyN
+		return nil
+	})
+
+	if err != nil {
+		logrus.Warningf("error getting jobs length from boltdb: %v", err)
+		size = 0
+	}
+
+	return size
+}
+
 // GetResults returns all the results of a jobs from boltdb. Use low and high params as slice operator
 func (c *BoltDB) GetResults(j *job.Job, low, high int) ([]*job.Result, error) {
 	res := []*job.Result{}
@@ -416,4 +438,32 @@ func (c *BoltDB) DeleteResult(r *job.Result) error {
 
 	logrus.Debugf("Res '%d' deleted boltdb", r.ID)
 	return nil
+}
+
+// ResultsLength returns the number of results(of a job) stored in boltdb
+func (c *BoltDB) ResultsLength(j *job.Job) int {
+	var size int
+	err := c.DB.View(func(tx *bolt.Tx) error {
+		// Get job from job bucket
+		resB := tx.Bucket([]byte(resultsBucket))
+		if resB == nil {
+			return errors.New("No results bucket present")
+		}
+
+		jobresKey := fmt.Sprintf(jobResultsBuckets, string(idToByte(j.ID)))
+		b := resB.Bucket([]byte(jobresKey))
+		if b == nil {
+			return errors.New("No results bucket present")
+		}
+		// Number of keys on boltdb
+		size = b.Stats().KeyN
+		return nil
+	})
+
+	if err != nil {
+		logrus.Warningf("error getting results length from boltdb: %v", err)
+		size = 0
+	}
+
+	return size
 }

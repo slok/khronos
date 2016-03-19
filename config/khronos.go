@@ -10,8 +10,9 @@ var (
 	ValidStorageEngines = []string{"dummy", "boltdb"}
 
 	// Defaults
-	resultBufferLenDefault = 100
-	storageEngineDefault   = "boltdb"
+	resultBufferLenDefault     = 100
+	storageEngineDefault       = "boltdb"
+	apiResourcesPerPageDefault = 20
 )
 
 // Khronos holds the configuration of the main application
@@ -24,6 +25,9 @@ type Khronos struct {
 
 	//DontScheduleJobsStart flag, specifies to not schedule jobs at app startup
 	DontScheduleJobsStart bool `envconfig:"KHRONOS_DONT_SCHEDULE_JOBS_ON_START"`
+
+	//APIResourcesPerPage integer, specifies how many objects will the API return
+	APIResourcesPerPage int `envconfig:"KHRONOS_API_RESOURCES_PER_PAGE"`
 }
 
 // LoadKhronosConfig Loads the configuration for the application
@@ -68,5 +72,9 @@ func (k *Khronos) LoadDefaults() {
 
 	if k.StorageEngine == "" {
 		k.StorageEngine = storageEngineDefault
+	}
+
+	if k.APIResourcesPerPage == 0 {
+		k.APIResourcesPerPage = apiResourcesPerPageDefault
 	}
 }
