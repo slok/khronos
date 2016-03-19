@@ -459,7 +459,7 @@ func TestGetResults(t *testing.T) {
 			givenURI:     "/api/v1/jobs/1/results",
 			givenResults: make(map[string]map[string]*job.Result),
 			givenJobs:    map[string]*job.Job{"job:1": j},
-			wantCode:     http.StatusInternalServerError,
+			wantCode:     http.StatusOK,
 		},
 		{
 			givenURI: "/api/v1/jobs/1/results",
@@ -510,8 +510,9 @@ func TestGetResults(t *testing.T) {
 				t.Errorf("Error unmarshaling: %v", err)
 			}
 			rs, ok := test.givenResults["job:1:results"]
+			// if not ok then empty map
 			if !ok {
-				t.Errorf("Error getting results: %v", err)
+				rs = map[string]*job.Result{}
 			}
 			if len(gotRes) != len(rs) {
 				t.Errorf("Expected len '%d'. Got '%d' instead ", len(rs), len(gotRes))
