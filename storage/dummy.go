@@ -127,6 +127,11 @@ func (c *Dummy) DeleteJob(j *job.Job) error {
 	return nil
 }
 
+// JobsLength returns the number of jobs stored
+func (c *Dummy) JobsLength() int {
+	return len(c.Jobs)
+}
+
 // GetResults returns results from a job on memory
 func (c *Dummy) GetResults(j *job.Job, low, high int) ([]*job.Result, error) {
 	c.resultsMutex.Lock()
@@ -212,4 +217,15 @@ func (c *Dummy) DeleteResult(r *job.Result) error {
 
 	// Don't return error if the result doens't exists
 	return nil
+}
+
+// ResultsLength returns the number of results stored
+func (c *Dummy) ResultsLength(j *job.Job) int {
+	resultsKey := fmt.Sprintf(jobResultsKeyFmt, j.ID)
+	if l, ok := c.Results[resultsKey]; ok {
+		return len(l)
+	}
+
+	// No key, means 0 size
+	return 0
 }

@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -132,6 +133,108 @@ func TestGetJobs(t *testing.T) {
 
 		if len(got) != test.wantBodyLength {
 			t.Errorf("Expected length '%d'. Got '%d' instead ", test.wantBodyLength, len(got))
+		}
+	}
+}
+
+func TestGetJobsPaginated(t *testing.T) {
+	jobs := make(map[string]*job.Job)
+	totalJobs := 27
+	pageSize := 5
+	testStorageClient := storage.NewDummy()
+	// Custom pagination
+	paginationTestConfig := config.NewAppConfig(os.Getenv(config.KhronosConfigFileKey))
+	paginationTestConfig.APIResourcesPerPage = pageSize
+	testCronEngine := schedule.NewDummyCron(paginationTestConfig, testStorageClient, 0, "OK")
+	testCronEngine.Start(nil)
+
+	// Create our custom dummy job database
+	for i := 1; i <= totalJobs; i++ {
+		k := fmt.Sprintf("job:%d", i)
+		v := &job.Job{ID: i, Name: fmt.Sprintf("test%d", i), When: "@daily", URL: &url.URL{}}
+		jobs[k] = v
+	}
+
+	// Testing data
+	tests := []struct {
+		givenURI   string
+		wantJobIDs []int
+	}{
+		{
+			givenURI:   "/api/v1/jobs",
+			wantJobIDs: []int{1, 2, 3, 4, 5},
+		},
+		{
+			givenURI:   "/api/v1/jobs?page=0",
+			wantJobIDs: []int{1, 2, 3, 4, 5},
+		},
+		{
+			givenURI:   "/api/v1/jobs?page=1",
+			wantJobIDs: []int{1, 2, 3, 4, 5},
+		},
+		{
+			givenURI:   "/api/v1/jobs?page=2",
+			wantJobIDs: []int{6, 7, 8, 9, 10},
+		},
+		{
+			givenURI:   "/api/v1/jobs?page=3",
+			wantJobIDs: []int{11, 12, 13, 14, 15},
+		},
+		{
+			givenURI:   "/api/v1/jobs?page=4",
+			wantJobIDs: []int{16, 17, 18, 19, 20},
+		},
+		{
+			givenURI:   "/api/v1/jobs?page=5",
+			wantJobIDs: []int{21, 22, 23, 24, 25},
+		},
+		{
+			givenURI:   "/api/v1/jobs?page=6",
+			wantJobIDs: []int{26, 27},
+		},
+		{
+			givenURI:   "/api/v1/jobs?page=7",
+			wantJobIDs: []int{},
+		},
+	}
+
+	// Tests
+	for _, test := range tests {
+		// Set our dummy 'database' on the storage client
+		testStorageClient.Jobs = jobs
+		testStorageClient.JobCounter = totalJobs
+
+		// Create a testing server
+		testServer := server.NewSimpleServer(nil)
+
+		// Register our service on the server (we don't need configuration for this service)
+		testServer.Register(&KhronosService{
+			Config:  paginationTestConfig,
+			Storage: testStorageClient,
+			Cron:    testCronEngine,
+		})
+
+		// Create request and a test recorder
+		r, _ := http.NewRequest("GET", test.givenURI, nil)
+		w := httptest.NewRecorder()
+		testServer.ServeHTTP(w, r)
+
+		var got []*job.Job
+		err := json.NewDecoder(w.Body).Decode(&got)
+		if err != nil {
+			t.Error(err)
+		}
+
+		// Check length
+		if len(got) != len(test.wantJobIDs) {
+			t.Errorf("Expected length '%d'. Got '%d' instead ", len(test.wantJobIDs), len(got))
+		}
+
+		// Check IDs ok (should be in order)
+		for k, i := range test.wantJobIDs {
+			if got[k].ID != i {
+				t.Errorf("Expected job id '%d'. Got '%d' instead ", i, got[k].ID)
+			}
 		}
 	}
 }

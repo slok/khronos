@@ -22,6 +22,42 @@ const (
 	wrongParamsMsg               = "Wrong params"
 )
 
+//#################### Helpers #######################
+
+// pageFromRequest returns the correct page extracting from the requests querstring param
+func pageFromRequest(r *http.Request) int {
+	// Page will set the offset
+	var p string
+	if p = r.URL.Query().Get("page"); p == "" {
+		p = "0"
+	}
+	page, err := strconv.Atoi(p)
+	if err != nil {
+		logrus.Warningf("error getting page querystring param: %v", err)
+		return 1
+	}
+	// If wrong param then page 1
+	if page <= 0 {
+		page = 1
+	}
+
+	return page
+}
+
+// offsetsFromPage returs the start and end of a range based on the page
+func (s *KhronosService) offsetsFromPage(page, length int) (start, end int) {
+	end = s.Config.APIResourcesPerPage * page
+	start = end - s.Config.APIResourcesPerPage
+	// Check if we reached to the last elements, this means that end could not be
+	// a whole page size of resources
+	if start+1 < length && end+1 > length {
+		end = start + (length % s.Config.APIResourcesPerPage)
+	}
+	return
+}
+
+//#################### endpoints #######################
+
 //Ping informs service is alive
 func (s *KhronosService) Ping(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Calling ping endpoint")
@@ -33,17 +69,16 @@ func (s *KhronosService) GetJobs(r *http.Request) (int, interface{}, error) {
 	logrus.Debug("Calling GetAllJobs endpoint")
 
 	// Page will set the offset
-	p := r.URL.Query().Get("page")
-	var err error
-	page := 1
-	if p != "" {
-		if page, err = strconv.Atoi(p); err != nil {
-			logrus.Errorf("error getting page querystring param: %v", err)
-			return http.StatusInternalServerError, wrongParamsMsg, nil
-		}
+	page := pageFromRequest(r)
+	length := s.Storage.JobsLength()
+	start, end := s.offsetsFromPage(page, length)
+
+	// First check if need to query
+	if (start > length) || length == 0 {
+		return http.StatusOK, []struct{}{}, nil
 	}
 
-	jobs, err := s.Storage.GetJobs(0, 0)
+	jobs, err := s.Storage.GetJobs(start, end)
 
 	if err != nil {
 		logrus.Errorf("Error retrieving all jobs: %v", err)
@@ -164,14 +199,8 @@ func (s *KhronosService) GetResults(r *http.Request) (int, interface{}, error) {
 	}
 
 	// Page will set the offset
-	p := r.URL.Query().Get("page")
-	page := 1
-	if p != "" {
-		if page, err = strconv.Atoi(p); err != nil {
-			logrus.Errorf("error getting page querystring param: %v", err)
-			return http.StatusInternalServerError, wrongParamsMsg, nil
-		}
-	}
+	page := pageFromRequest(r)
+	fmt.Println(page)
 
 	j, err := s.Storage.GetJob(jobID)
 	if err != nil {
