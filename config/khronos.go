@@ -28,6 +28,9 @@ type Khronos struct {
 
 	//APIResourcesPerPage integer, specifies how many objects will the API return
 	APIResourcesPerPage int `envconfig:"KHRONOS_API_RESOURCES_PER_PAGE"`
+
+	// Disable API security
+	APIDisableSecurity bool `envconfig:"KHRONOS_API_DISABLE_SECURITY"`
 }
 
 // LoadKhronosConfig Loads the configuration for the application
@@ -61,6 +64,10 @@ func (k *Khronos) LoadKhronosConfig(cfg *AppConfig) {
 		logrus.Warning("Not loading jobs on startup")
 	} else {
 		logrus.Infof("Loading jobs on startup active")
+	}
+
+	if k.APIDisableSecurity {
+		logrus.Warning("Security of the API is disabled!")
 	}
 }
 
