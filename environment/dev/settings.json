@@ -2,5 +2,6 @@
     "HTTPPort": 4444,
     "LogLevel": "debug",
     "BoltDBPath": "khronos.db",
-    "DontScheduleJobsStart": false
+    "DontScheduleJobsStart": false,
+    "APIDisableSecurity": true
 }
