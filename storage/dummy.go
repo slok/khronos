@@ -17,26 +17,32 @@ const resultKeyFmt = "result:%d"
 // Dummy implements the Storage interface everything to a local memory map
 type Dummy struct {
 	// Our memory database
+	jobsMutex  *sync.Mutex
 	Jobs       map[string]*job.Job
 	JobCounter int
-	jobsMutex  *sync.Mutex
 
+	resultsMutex   *sync.Mutex
 	Results        map[string]map[string]*job.Result
 	ResultsCounter map[string]int
-	resultsMutex   *sync.Mutex
+
+	TokenMutex *sync.Mutex
+	Tokens     map[string]struct{}
 }
 
 // NewDummy creates a client that stores on memory
 func NewDummy() *Dummy {
 	logrus.Debug("New Dummy storage client created")
 	return &Dummy{
+		jobsMutex:  &sync.Mutex{},
 		Jobs:       map[string]*job.Job{},
 		JobCounter: 0,
-		jobsMutex:  &sync.Mutex{},
 
+		resultsMutex:   &sync.Mutex{},
 		Results:        map[string]map[string]*job.Result{},
 		ResultsCounter: map[string]int{},
-		resultsMutex:   &sync.Mutex{},
+
+		TokenMutex: &sync.Mutex{},
+		Tokens:     map[string]struct{}{},
 	}
 }
 
@@ -228,4 +234,33 @@ func (c *Dummy) ResultsLength(j *job.Job) int {
 
 	// No key, means 0 size
 	return 0
+}
+
+// SaveAuthenticationToken stores an authentication token on database
+func (c *Dummy) SaveAuthenticationToken(token string) error {
+	if token == "" {
+		return errors.New("Wrong token")
+	}
+	c.TokenMutex.Lock()
+	defer c.TokenMutex.Unlock()
+	c.Tokens[token] = struct{}{}
+	return nil
+}
+
+// DeleteAuthenticationToken Deletes an authentication token from database
+func (c *Dummy) DeleteAuthenticationToken(token string) error {
+	c.TokenMutex.Lock()
+	defer c.TokenMutex.Unlock()
+	delete(c.Tokens, token)
+	return nil
+}
+
+// AuthenticationTokenExists Checks if an authentication token exists
+func (c *Dummy) AuthenticationTokenExists(token string) bool {
+	c.TokenMutex.Lock()
+	defer c.TokenMutex.Unlock()
+	if _, ok := c.Tokens[token]; ok {
+		return true
+	}
+	return false
 }

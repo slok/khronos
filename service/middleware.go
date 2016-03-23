@@ -3,12 +3,13 @@ package service
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 
 	"github.com/Sirupsen/logrus"
 )
 
 var (
-	dummyKey = "123456789"
+	tokenRe = regexp.MustCompile(`Bearer (\w+)`)
 )
 
 // AuthenticationHandler Checks the application security, Authorization header
@@ -19,9 +20,17 @@ func (s *KhronosService) AuthenticationHandler(f http.Handler) http.Handler {
 		if !s.Config.APIDisableSecurity {
 			// Check header
 			auth := r.Header.Get("Authorization")
-			// TODO: Remove dummy key
-			key := dummyKey
-			if auth != fmt.Sprintf("Bearer %s", key) {
+
+			reResult := tokenRe.FindStringSubmatch(auth)
+			var access bool
+			fmt.Println(reResult)
+			// If valid then access is true
+			if len(reResult) > 0 && s.Storage.AuthenticationTokenExists(reResult[1]) {
+				access = true
+			}
+
+			// Can access?
+			if !access {
 				logrus.Debugf("Forbidden access with header '%s'", auth)
 				w.WriteHeader(http.StatusForbidden)
 				return

@@ -29,7 +29,7 @@ type Khronos struct {
 	//APIResourcesPerPage integer, specifies how many objects will the API return
 	APIResourcesPerPage int `envconfig:"KHRONOS_API_RESOURCES_PER_PAGE"`
 
-	// Disable API security
+	//APIDisableSecurity Disable API security
 	APIDisableSecurity bool `envconfig:"KHRONOS_API_DISABLE_SECURITY"`
 }
 

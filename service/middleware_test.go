@@ -13,6 +13,11 @@ import (
 
 func TestAuthenticationMiddleware(t *testing.T) {
 
+	// These are the valid tokens to make the requests
+	validTokens := map[string]struct{}{
+		"123456789": struct{}{},
+	}
+
 	tests := []struct {
 		GivenAuthHeader string
 		WantCode        int
@@ -22,8 +27,9 @@ func TestAuthenticationMiddleware(t *testing.T) {
 		{GivenAuthHeader: "", WantCode: http.StatusOK, SecurityEnabled: false},
 		{GivenAuthHeader: "Bearer ", WantCode: http.StatusForbidden, SecurityEnabled: true},
 		{GivenAuthHeader: "Bearer 987654321", WantCode: http.StatusForbidden, SecurityEnabled: true},
-		// TODO: Remove dummy key
 		{GivenAuthHeader: "Bearer 123456789", WantCode: http.StatusOK, SecurityEnabled: true},
+		{GivenAuthHeader: "123456789", WantCode: http.StatusForbidden, SecurityEnabled: true},
+		{GivenAuthHeader: "Bearer  123456789", WantCode: http.StatusForbidden, SecurityEnabled: true},
 	}
 
 	for _, test := range tests {
@@ -31,6 +37,8 @@ func TestAuthenticationMiddleware(t *testing.T) {
 		// Disable or enable security based on the test
 		testConfig.APIDisableSecurity = !test.SecurityEnabled
 		testStorageClient := storage.NewDummy()
+		// mock custom auth tokens on database
+		testStorageClient.Tokens = validTokens
 		testSchedulerClient := schedule.NewDummyCron(testConfig, testStorageClient, 0, "OK")
 
 		s := &KhronosService{

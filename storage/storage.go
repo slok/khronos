@@ -46,4 +46,13 @@ type Client interface {
 
 	// ResultsLength returns the number of results (of a job) stored
 	ResultsLength(j *job.Job) int
+
+	// SaveAuthenticationToken stores an authentication token on database
+	SaveAuthenticationToken(token string) error
+
+	// DeleteAuthenticationToken Deletes an authentication token from database
+	DeleteAuthenticationToken(token string) error
+
+	// AuthenticationTokenExists Checks if an authentication token exists
+	AuthenticationTokenExists(token string) bool
 }
