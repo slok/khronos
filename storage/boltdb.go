@@ -4,8 +4,14 @@ BoltDB storage for jobs and results consist on.
 Jobs are stored in a bucket named "jobs"; in this bucket the job key is an incremental ID.
 Results are stored in a bucket named "results", in this bucket will be more buckets
 named "job:ID:results" that will have the results identified with an incremental ID.
+Tokens are stored in a bucket named "authTokens"; in this bucket the key will be the
+token itself, and the valud of the key will be an empty byte array, we only need to store
+the keys, if a key is present then is a valid authentication key
 
 .
+├── authTokens
+│   ├── 321ndldl233n32dj43
+│   └── fdsf233d32cc656vsd
 ├── jobs
 │   ├── 1
 │   ├── 2
@@ -20,6 +26,7 @@ named "job:ID:results" that will have the results identified with an incremental
    └── job:3:results
 	   ├── 1
 	   └── 2
+
 
 */
 
@@ -42,6 +49,7 @@ const (
 	jobsBucket        = "jobs"
 	resultsBucket     = "results"
 	jobResultsBuckets = "job:%s:results"
+	tokensBucket      = "authTokens"
 )
 
 // BoltDB client to store jobs on database
@@ -76,13 +84,16 @@ func NewBoltDB(path string, timeout time.Duration) (*BoltDB, error) {
 
 	// Create top level buckets if necessary
 	db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte(jobsBucket))
-		if err != nil {
+
+		if _, err := tx.CreateBucketIfNotExists([]byte(jobsBucket)); err != nil {
 			return fmt.Errorf("error creating bucket: %s", err)
 		}
 
-		_, err = tx.CreateBucketIfNotExists([]byte(resultsBucket))
-		if err != nil {
+		if _, err := tx.CreateBucketIfNotExists([]byte(resultsBucket)); err != nil {
+			return fmt.Errorf("error creating bucket: %s", err)
+		}
+
+		if _, err := tx.CreateBucketIfNotExists([]byte(tokensBucket)); err != nil {
 			return fmt.Errorf("error creating bucket: %s", err)
 		}
 
@@ -189,6 +200,7 @@ func (c *BoltDB) GetJob(id int) (*job.Job, error) {
 		return nil, err
 	}
 
+	logrus.Debugf("Job '%d' retrieved from boltdb", j.ID)
 	return j, nil
 }
 
@@ -268,6 +280,7 @@ func (c *BoltDB) JobsLength() int {
 		size = 0
 	}
 
+	logrus.Debugf("Length '%d' obtained from jobs on boltdb", size)
 	return size
 }
 
@@ -377,6 +390,7 @@ func (c *BoltDB) GetResult(j *job.Job, id int) (*job.Result, error) {
 		return nil, err
 	}
 
+	logrus.Debugf("Result '%d' retrieved from boltdb", r.ID)
 	return r, nil
 }
 
@@ -436,7 +450,7 @@ func (c *BoltDB) DeleteResult(r *job.Result) error {
 		return err
 	}
 
-	logrus.Debugf("Res '%d' deleted boltdb", r.ID)
+	logrus.Debugf("Result '%d' deleted boltdb", r.ID)
 	return nil
 }
 
@@ -465,5 +479,47 @@ func (c *BoltDB) ResultsLength(j *job.Job) int {
 		size = 0
 	}
 
+	logrus.Debugf("Length '%d' obtained from results on boltdb", size)
 	return size
+}
+
+// SaveAuthenticationToken stores an authentication token on boltdb
+func (c *BoltDB) SaveAuthenticationToken(token string) error {
+	if token == "" {
+		return errors.New("wrong token parameter")
+	}
+
+	err := c.DB.Update(func(tx *bolt.Tx) error {
+		tb := tx.Bucket([]byte(tokensBucket))
+		return tb.Put([]byte(token), nil)
+	})
+	logrus.Debugf("New token stored on boltdb")
+	return err
+}
+
+// DeleteAuthenticationToken Deletes an authentication token from boltdb, doesn't return error if doesnt exists
+func (c *BoltDB) DeleteAuthenticationToken(token string) error {
+	err := c.DB.Update(func(tx *bolt.Tx) error {
+		tb := tx.Bucket([]byte(tokensBucket))
+		return tb.Delete([]byte(token))
+	})
+
+	logrus.Debugf("Token deleted from boltdb")
+	return err
+}
+
+// AuthenticationTokenExists Checks if an authentication token exists on boltdb
+func (c *BoltDB) AuthenticationTokenExists(token string) bool {
+	var tkPresent bool
+
+	c.DB.View(func(tx *bolt.Tx) error {
+		tb := tx.Bucket([]byte(tokensBucket))
+		if tDb := tb.Get([]byte(token)); tDb != nil {
+			tkPresent = true
+		}
+		return nil
+	})
+
+	logrus.Debugf("Token checked on boltdb")
+	return tkPresent
 }

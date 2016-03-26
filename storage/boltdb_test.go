@@ -869,5 +869,121 @@ func TestBoltDBResultsLength(t *testing.T) {
 			t.Errorf("Wrong results length, expected: %d;got %d", i-1, resLen)
 		}
 	}
+}
 
+func TestBoltDBSaveAuthToken(t *testing.T) {
+	boltPath := randomPath()
+	totalTokens := 20
+
+	// Create a new boltdb connection
+	c, err := NewBoltDB(boltPath, 2*time.Second)
+	if err != nil {
+		t.Errorf("Error creating bolt connection: %v", err)
+	}
+	// Close ok
+	defer func() {
+		if err := tearDownBoltDB(c.DB); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	for i := 0; i < totalTokens; i++ {
+		// Create token
+		tk := fmt.Sprintf("Token:%d", i)
+		if err := c.SaveAuthenticationToken(tk); err != nil {
+			t.Errorf("Error storing token in boltdb: %v", err)
+		}
+
+		// Retrieve result
+		c.DB.View(func(tx *bolt.Tx) error {
+			tb := tx.Bucket([]byte(tokensBucket))
+			// Check if result present
+			if token := tb.Get([]byte(tk)); token == nil {
+				t.Error("Token not in database, it should be")
+			}
+			return nil
+		})
+
+	}
+}
+
+func TestBoltDBDeleteAuthToken(t *testing.T) {
+	boltPath := randomPath()
+	totalTokens := 20
+
+	// Create a new boltdb connection
+	c, err := NewBoltDB(boltPath, 2*time.Second)
+	if err != nil {
+		t.Errorf("Error creating bolt connection: %v", err)
+	}
+	// Close ok
+	defer func() {
+		if err := tearDownBoltDB(c.DB); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	for i := 0; i < totalTokens; i++ {
+		// Create token
+		tk := fmt.Sprintf("Token:%d", i)
+		if err := c.SaveAuthenticationToken(tk); err != nil {
+			t.Errorf("Error storing token in boltdb: %v", err)
+		}
+
+		// Retrieve result
+		c.DB.View(func(tx *bolt.Tx) error {
+			tb := tx.Bucket([]byte(tokensBucket))
+			// Check if result present
+			if token := tb.Get([]byte(tk)); token == nil {
+				t.Error("Token not in database, it should be")
+			}
+			return nil
+		})
+
+		c.DeleteAuthenticationToken(tk)
+
+		// Check result not present
+		c.DB.View(func(tx *bolt.Tx) error {
+			tb := tx.Bucket([]byte(tokensBucket))
+			if token := tb.Get([]byte(tk)); token != nil {
+				t.Error("Token in database, it shouldn't be")
+			}
+			return nil
+		})
+	}
+}
+
+func TestBoltDBEAuthTokenExists(t *testing.T) {
+	boltPath := randomPath()
+	totalTokens := 20
+
+	// Create a new boltdb connection
+	c, err := NewBoltDB(boltPath, 2*time.Second)
+	if err != nil {
+		t.Errorf("Error creating bolt connection: %v", err)
+	}
+	// Close ok
+	defer func() {
+		if err := tearDownBoltDB(c.DB); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	for i := 0; i < totalTokens; i++ {
+		tk := fmt.Sprintf("Token:%d", i)
+		// Check correct token doesn't exists
+		if c.AuthenticationTokenExists(tk) {
+			t.Errorf("Token %s shouldn't be in database, it is", tk)
+		}
+
+		// Create token
+		if err := c.SaveAuthenticationToken(tk); err != nil {
+			t.Errorf("Error storing token in boltdb: %v", err)
+		}
+
+		// Check correct token exists
+		if !c.AuthenticationTokenExists(tk) {
+			t.Errorf("Token %s should be in database, it isn't", tk)
+		}
+	}
 }

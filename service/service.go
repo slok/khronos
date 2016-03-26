@@ -37,6 +37,8 @@ func (s *KhronosService) Prefix() string {
 
 // Middleware registers the middlewares to execute in the request flow
 func (s *KhronosService) Middleware(h http.Handler) http.Handler {
+	// Add authentication
+	h = s.AuthenticationHandler(h)
 	return h
 }
 

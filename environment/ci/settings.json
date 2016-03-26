@@ -1,4 +1,5 @@
 {
     "LogLevel": "debug",
-    "StorageEngine": "dummy"
+    "StorageEngine": "dummy",
+    "APIDisableSecurity": true
 }
