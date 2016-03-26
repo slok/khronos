@@ -32,7 +32,7 @@ func NewKhronosService(cfg *config.AppConfig, storage storage.Client, cron *sche
 
 //Prefix returns the prefix of the service (used by gizmo)
 func (s *KhronosService) Prefix() string {
-	return prefix
+	return "/"
 }
 
 // Middleware registers the middlewares to execute in the request flow
@@ -47,34 +47,43 @@ func (s *KhronosService) JSONMiddleware(j server.JSONEndpoint) server.JSONEndpoi
 	return j
 }
 
-// JSONEndpoints maps the routes to the enpoints
+// JSONEndpoints maps the routes to the API endpoints
 func (s *KhronosService) JSONEndpoints() map[string]map[string]server.JSONEndpoint {
 	return map[string]map[string]server.JSONEndpoint{
 
-		"/ping": map[string]server.JSONEndpoint{
+		"/api/v1/ping": map[string]server.JSONEndpoint{
 			// ping is used to check the service is alive
 			"GET": s.Ping,
 		},
 
-		"/jobs": map[string]server.JSONEndpoint{
+		"/api/v1/jobs": map[string]server.JSONEndpoint{
 			// Returns all the registered jobs
 			"GET": s.GetJobs,
 			// Register a new job
 			"POST": s.CreateNewJob,
 		},
 
-		"/jobs/{id}": map[string]server.JSONEndpoint{
+		"/api/v1/jobs/{id}": map[string]server.JSONEndpoint{
 			"GET":    s.GetJob,
 			"DELETE": s.DeleteJob,
 		},
 
-		"/jobs/{jobID}/results": map[string]server.JSONEndpoint{
+		"/api/v1/jobs/{jobID}/results": map[string]server.JSONEndpoint{
 			"GET": s.GetResults,
 		},
 
-		"/jobs/{jobID}/results/{resultID}": map[string]server.JSONEndpoint{
+		"/api/v1/jobs/{jobID}/results/{resultID}": map[string]server.JSONEndpoint{
 			"GET":    s.GetResult,
 			"DELETE": s.DeleteResult,
+		},
+	}
+}
+
+// Endpoints maps the rountes to the regular endpoints
+func (s *KhronosService) Endpoints() map[string]map[string]http.HandlerFunc {
+	return map[string]map[string]http.HandlerFunc{
+		"/": map[string]http.HandlerFunc{
+			"GET": s.JobsList,
 		},
 	}
 }
